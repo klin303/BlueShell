@@ -28,6 +28,7 @@ rule tokenize = parse
 | "<"      { LT }
 | ">="      { GEQ }
 | "<="      { LEQ }
+| "if"      { IF }
 | '=' { ASSIGN }
 | ['0'-'9']+ as lit { LITERAL(int_of_string lit) }
 | ['A'-'Z' 'a'-'z']['A'-'Z' 'a'-'z' '0'-'9' '_']* + as lit { VARIABLE(lit) }

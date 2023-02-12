@@ -6,6 +6,7 @@
 %token PLUS MINUS TIMES DIVIDE ASSIGN (* type operators *)
 %token AND OR NOT (* logical operator *)
 %token GT LT EQ GEQ LEQ NEQ (* comparisons *)
+%token IF
 %token <int> LITERAL
 %token <string> VARIABLE
 %token EOF
