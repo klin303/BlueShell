@@ -1,0 +1,22 @@
+TODO LIST:
+
+EXECUTABLES:
+
+
+
+
+LISTS:
+- examples
+
+
+
+
+FIRST CLASS FUNCTIONS:
+- everything
+
+
+
+
+OTHER:
+- exceptions???
+- null? do we need something of this vibe
