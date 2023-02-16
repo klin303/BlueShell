@@ -3,7 +3,7 @@
 { open Parser } (* Header which opens Parser file *)
 
 rule tokenize = parse
-  [' ' '\t' '\r' '\n'] { token lexbuf }
+  [' ' '\t' '\r' '\n'] { tokenize lexbuf }
 | "/*" { multiline_comment lexbuf } (* comments *)
 | "//" { singleline_comment lexbuf }
 | '('      { LPAREN }         (* structural tokens *)
@@ -12,11 +12,12 @@ rule tokenize = parse
 | '}'      { RBRACE }
 | ';'      { SEMI }
 | ','      { COMMA }
-| '+'      { PLUS }
+| '='       { ASSIGN }
+| '+'      { PLUS }       (* arithmetic symbols *)
 | '-'      { MINUS }
 | '*'      { TIMES }
 | '/'      { DIVIDE }
-| "and"    { AND }
+| "and"    { AND }        (* boolean operators *)
 | "&&"     { AND }
 | "or"     { OR }
 | "||"     { OR }
@@ -28,29 +29,32 @@ rule tokenize = parse
 | "<"      { LT }
 | ">="      { GEQ }
 | "<="      { LEQ }
-| "if"      { IF }
-| '='       { ASSIGN }
-| "if"     { IF }
+| "if"      { IF }            (* stmts *)
+| "else if" {ELSEIF}
 | "else"   { ELSE }
 | "for"    { FOR }
 | "while"  { WHILE }
 | "return" { RETURN }
-| "int"    { INT }
+| "int"    { INT }      (* types *)
 | "bool"   { BOOL }
 | "float"  { FLOAT }
-| "list"   { LIST }
-| ['0'-'9']+ as lit { LITERAL(int_of_string lit) }
-| ['A'-'Z' 'a'-'z']['A'-'Z' 'a'-'z' '0'-'9' '_']* + as lit { VARIABLE(lit) }
-| '['       { LBRACKET }
+| "exec"    { EXEC }
+| "|"       { PIPE }
+| "./"      { RUN }
+| "?"       { EXITCODE }
+| '['       { LBRACKET }  (* list operators *)
 | ']'       { RBRACKET }
 | "::"      { CONS }
 | "@"       { APPEND }
+| ['0'-'9']+ as lit { LITERAL(int_of_string lit) }
+| ['A'-'Z' 'a'-'z']['A'-'Z' 'a'-'z' '0'-'9' '_']* + as lit { VARIABLE(lit) }
 | eof { EOF }
+| _ as char { raise (Failure("illegal character " ^ Char.escaped char)) }
 
 and multiline_comment = parse
-  "*/" { token lexbuf }
+  "*/" { tokenize lexbuf }
   | _ { comment lexbuf }
 
 and singleline_comment = parse
-  "\n"{ token lexbuf }
+  "\n"{ tokenize lexbuf }
   | _ { singleline_comment }

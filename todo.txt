@@ -18,5 +18,5 @@ FIRST CLASS FUNCTIONS:
 
 
 OTHER:
-- exceptions???
-- null? do we need something of this vibe
+- exceptions??? - should probably have this but maybe not in first iteration?
+- null? do we need something of this vibe - yes we should
