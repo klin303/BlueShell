@@ -34,13 +34,21 @@ typ:
   | LIST  { List }
 
 path:
-  LITERAL           { LIT($1) }
+  LITERAL           { Lit($1) }
+  | VARIABLE        { Var($1)}
 
 args:
-  list              { LIST($1) }
+  list              { List($1) }
 
 list:
-(* define list type here *)
+    LBRACKET cont_list   { List($2) }
+    | LBRACKET RBRACKET  { List() }         
+
+cont_list:
+    VARIABLE COMMA cont_list    { }
+    | LITERAL COMMA cont_list
+    | VARIABLE RBRACKET
+    | LITERAL RBRACKET
 
 exec:
   simple_exec       { $1 }
@@ -52,10 +60,10 @@ simple_exec:
   path args         { Exec($1, $2) }
 
 output:
-  LITERAL           { LIT($1) }
+  LITERAL           { Lit($1) }
 
 exit_code:
-  LITERAL           { LIT($1) }
+  LITERAL           { Lit($1) }
 
 full_expr:
   expr EOF { $1 }
@@ -63,7 +71,7 @@ full_expr:
 
 expr:
     LITERAL          { Literal($1)            }
-  | FLIT	           { Fliteral($1)           }
+  | FLIT	         { Fliteral($1)           }
   | BLIT             { BoolLit($1)            }
   | ID               { Id($1)                 }
   | expr PLUS   expr { Binop($1, Add,   $3)   }
@@ -85,7 +93,6 @@ expr:
   | LPAREN expr RPAREN        { $2                   }
   | VARIABLE ASSIGN expr      { Asn($1, $3) }
   | VARIABLE                  { Var($1) }
-  | LITERAL                   { Lit($1) }
   | exec EXITCODE             { Uop($1, exit_code) }
   | RUN exec                  { Uop($1, run) }
   | exec                      { $1 }
