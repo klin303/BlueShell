@@ -3,9 +3,9 @@
 type op = Add | Sub | Mult | Div | Equal | Neq | Less | Leq | Greater | Geq |
           And | Or
 
-type uop = Neg | Not
+type uop = Neg | Not | ExitCode | Run
 
-type typ = Int | Bool | Float | Void
+type typ = Int | Bool | Float | Void | Exec | String | List | Function
 
 type bind = typ * string
 
