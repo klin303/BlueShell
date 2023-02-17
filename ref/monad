@@ -1,0 +1,10 @@
+type 'a Maybe = Just of 'a | Nothing
+
+let >>= box f = match box with
+  Just a -> f a
+  Nothing -> Nothing
+
+let maybeAdd3 a = Just (a + 3)
+
+let _ = (>>= Nothing maybeAdd3) (* Nothing, (Maybe Int) *)
+let _ = (>>= Just 5 maybeAdd3) (* Just 8, (Maybe Int) *)
