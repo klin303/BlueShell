@@ -1,20 +1,23 @@
-(* Starter parser.mly code from the OCaml slides *)
+(* parser.mly *)
+(* BlueShell *)
+(* Kenny Lin, Alan Luc, Tina Ma, Mary-Joy Sidhom *)
 
 %{ open Ast %}
 
-%token SEMI LPAREN RPAREN LBRACE RBRACE COMMA (* strucutral tokens *)
+%token SEMI LPAREN RPAREN LBRACE RBRACE COMMA LBRACKET RBRACKET (* strucutral tokens *)
 %token PLUS MINUS TIMES DIVIDE ASSIGN (* type operators *)
 %token AND OR NOT (* logical operator *)
 %token GT LT EQ GEQ LEQ NEQ (* comparisons *)
 %token IF ELSEIF ELSE WHILE FOR RETURN (* statements *)
+%token INT BOOL FLOAT VOID EXEC CHAR STRING LIST
 %token <int> LITERAL
 %token <bool> BLIT
 %token <string> ID FLIT
-%token <string> VARIABLE
 %token EOF
+%token PIPE RUN EXITCODE (* executable operators *)
+%token CONS LENGTH (* list operators *)
 
 (* precedence *)
-%left SEQUENCE
 %right ASSIGN
 %left PLUS MINUS /* left means go left to right */
 %left TIMES DIVIDE /* lower the line, higher the precedence */
@@ -38,7 +41,8 @@ typ:
   | FLOAT { Float  }
   | VOID  { Void   }
   | EXEC  { Exec   }
-  | STR   { String }
+  | CHAR  { Char }
+  | STRING   { String }
   | LIST  { List }
   | FUNC  { Function }
 
@@ -54,29 +58,28 @@ simple_exec:
 
 path:
   LITERAL           { Literal($1) }
-  | VARIABLE        { Var($1)}
+  | ID              { Id($1) }
 
 args:
   list              { List($1) }
 
-
-(* what are output and exit_code used for? -alan *)
-output:
-  LITERAL           { Literal($1) }
-
-exit_code:
-  LITERAL           { Literal($1) }
-
 (* Lists *)
 list:
     LBRACKET cont_list   { List($2) }
-    | LBRACKET RBRACKET  { List() }         
+    | LBRACKET RBRACKET  { List(()) }
 
 cont_list:
-    VARIABLE COMMA cont_list    { }
-    | LITERAL COMMA cont_list
-    | VARIABLE RBRACKET
-    | LITERAL RBRACKET
+    expr COMMA cont_list    { ($1, $3) }
+    | expr RBRACKET         { ($1, ()) }
+
+index:
+    list LBRACKET expr RBRACKET { Binop($1, Index, $3) }
+
+cons:
+    expr CONS list { Binop($1, Cons, $3) }
+
+length:
+    LEN LPAREN list RPAREN { Binop($1, Length, $3) }
 
 (* Functions *)
 fdecl:
@@ -137,6 +140,7 @@ expr:
   | FLIT	         { Fliteral($1)           }
   | BLIT             { BoolLit($1)            }
   | ID               { Id($1)                 }
+  | 
   | expr PLUS   expr { Binop($1, Add,   $3)   }
   | expr MINUS  expr { Binop($1, Sub,   $3)   }
   | expr TIMES  expr { Binop($1, Mult,  $3)   }
@@ -154,8 +158,9 @@ expr:
   | ID ASSIGN expr            { Assign($1, $3)         }
   | ID LPAREN args_opt RPAREN { Call($1, $3)  }
   | LPAREN expr RPAREN        { $2                   }
-  | VARIABLE ASSIGN expr      { Asn($1, $3) }
-  | VARIABLE                  { Var($1) }
   | exec EXITCODE             { Unop(ExitCode, $1) }
   | RUN exec                  { Unop(Run, $1) }
   | exec                      { $1 }
+  | index                     { $1 }
+  | cons                      { $1 }
+  | length                    { $1 }

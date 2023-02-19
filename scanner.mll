@@ -1,6 +1,11 @@
-(* Starter code for scanner.mll from OCaml slides *)
+(* scanner.mll *)
+(* BlueShell *)
+(* Kenny Lin, Alan Luc, Tina Ma, Mary-Joy Sidhom *)
 
 { open Parser } (* Header which opens Parser file *)
+
+let digit = ['0' - '9']
+let digits = digit+
 
 rule tokenize = parse
   [' ' '\t' '\r' '\n'] { tokenize lexbuf }
@@ -12,6 +17,8 @@ rule tokenize = parse
 | '}'      { RBRACE }
 | ';'      { SEMI }
 | ','      { COMMA }
+| "'"      { SNGLQUOTE }
+| '"'      { DBLQUOTE }
 | '='       { ASSIGN }
 | '+'      { PLUS }       (* arithmetic symbols *)
 | '-'      { MINUS }
@@ -30,24 +37,32 @@ rule tokenize = parse
 | ">="      { GEQ }
 | "<="      { LEQ }
 | "if"      { IF }            (* stmts *)
-| "else if" {ELSEIF}
+| "else if" { ELSEIF }
 | "else"   { ELSE }
 | "for"    { FOR }
 | "while"  { WHILE }
 | "return" { RETURN }
+| "print"   { PRINT }
 | "int"    { INT }      (* types *)
 | "bool"   { BOOL }
 | "float"  { FLOAT }
+| "void"    { VOID }
 | "exec"    { EXEC }
-| "|"       { PIPE }
+| "char"    { CHAR }
+| "string"  { STRING }
+| "list"    { LIST }
+| "true"    { BLIT(true) }
+| "false"   { BLIT(false) }
+| "|"       { PIPE }      (* executable operators *)
 | "./"      { RUN }
 | "?"       { EXITCODE }
 | '['       { LBRACKET }  (* list operators *)
 | ']'       { RBRACKET }
 | "::"      { CONS }
-| "@"       { APPEND }
-| ['0'-'9']+ as lit { LITERAL(int_of_string lit) }
-| ['A'-'Z' 'a'-'z']['A'-'Z' 'a'-'z' '0'-'9' '_']* + as lit { VARIABLE(lit) }
+| "len"     { LENGTH }
+| digits as lxm { LITERAL(int_of_string lxm) }
+| digits '.'  digit* as lxm { FLIT(lxm) }
+| ['A'-'Z' 'a'-'z']['A'-'Z' 'a'-'z' '0'-'9' '_']* + as lit { ID(lit) }
 | eof { EOF }
 | _ as char { raise (Failure("illegal character " ^ Char.escaped char)) }
 
