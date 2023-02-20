@@ -67,14 +67,22 @@ exec:
   | exec PIPE exec  { Binop($1, Pipe, $3) }
 
 simple_exec:
-  path args         { Exec($1, $2) }
+  path earg_list         { Exec($1, $2) }
 
 path:
   LITERAL           { Literal($1) }
   | ID              { Id($1) }
 
-args:
-  list              { List($1) }
+earg_opt:
+    /* nothing */ { [] }
+  | eargs_list  { List.rev $1 }
+
+eargs_list:
+    expr                    { [$1] }
+  | eargs_list expr { $2 :: $1 }
+
+earg_index:
+    list LBRACKET expr RBRACKET { Binop($1, Index, $3) }
 
 (* Lists *)
 list:
@@ -85,14 +93,14 @@ cont_list:
     expr COMMA cont_list    { ($1, $3) }
     | expr RBRACKET         { ($1, ()) }
 
-index:
+list_index:
     list LBRACKET expr RBRACKET { Binop($1, Index, $3) }
 
-cons:
+list_cons:
     expr CONS list { Binop($1, Cons, $3) }
 
-length:
-    LEN LPAREN list RPAREN { Binop($1, Length, $3) }
+list_length:
+    LEN LPAREN list RPAREN { PreUnop(Length, $3) }
 
 (* Functions *)
 fdecl:
@@ -182,6 +190,6 @@ expr:
   | PATH exec                 { Unop(Path, $1) }
   | RUN exec                  { Unop(Run, $1) }
   | exec                      { $1 }
-  | index                     { $1 }
-  | cons                      { $1 }
-  | length                    { $1 }
+  | list_index                     { $1 }
+  | list_cons                      { $1 }
+  | listlength                    { $1 }
