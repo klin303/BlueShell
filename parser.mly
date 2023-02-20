@@ -14,7 +14,7 @@
 %token <bool> BLIT
 %token <string> ID FLIT
 %token EOF
-%token PIPE RUN EXITCODE (* executable operators *)
+%token PIPE RUN EXITCODE PATH (* executable operators *)
 %token CONS LENGTH (* list operators *)
 
 %start program
@@ -22,6 +22,7 @@
 
 (* precedence *)
 %nonassoc EXITCODE
+%nonassoc PATH
 %nonassoc RUN
 %nonassoc NOELSE
 %nonassoc ELSE
@@ -95,12 +96,11 @@ length:
 
 (* Functions *)
 fdecl:
-   typ ID LPAREN formals_opt RPAREN LBRACE vdecl_list stmt_list RBRACE
+   typ ID LPAREN formals_opt RPAREN LBRACE body_list RBRACE
      { { typ = $1;
 	 fname = $2;
 	 formals = List.rev $4;
-	 locals = List.rev $7;
-	 body = List.rev $8 } }
+	 body = List.rev $7; } }
 
 formals_opt:
     /* nothing */ { [] }
@@ -116,6 +116,14 @@ vdecl_list:
 
 vdecl:
    typ ID SEMI { ($1, $2) }
+
+body_list:
+  /* nothing */ { [] }
+| body_list body { $2 :: $1 }
+
+body:
+  vdecl { $1 }
+  stmt { $1 }
 
 stmt_list:
     /* nothing */  { [] }
@@ -171,6 +179,7 @@ expr:
   | ID LPAREN args_opt RPAREN { Call($1, $3)  }
   | LPAREN expr RPAREN        { $2                   }
   | exec EXITCODE             { PostUnop($1, Exitcode) }
+  | PATH exec                 { Unop(Path, $1) }
   | RUN exec                  { Unop(Run, $1) }
   | exec                      { $1 }
   | index                     { $1 }

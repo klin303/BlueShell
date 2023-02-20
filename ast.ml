@@ -3,13 +3,15 @@
 (* Kenny Lin, Alan Luc, Tina Ma, Mary-Joy Sidhom *)
 
 type op = Add | Sub | Mult | Div | Equal | Neq | Less | Leq | Greater | Geq |
-          And | Or | Index | Cons | Length | Concat | Seq | Pipe
+          And | Or | Index | Cons | Length | Concat | Seq | Pipe | Path
 
 type uop = Neg | Not | ExitCode | Run
 
 type typ = Int | Bool | Float | Void | Exec | String | List | Function
 
 type bind = typ * string
+
+type body = bind | stmt
 
 type expr =
     Literal of int
@@ -35,8 +37,8 @@ type func_decl = {
     typ : typ;
     fname : string;
     formals : bind list;
-    locals : bind list;
-    body : stmt list;
+    (* locals : bind list; *)
+    body : body list;
   }
 
 type program = bind list * func_decl list
