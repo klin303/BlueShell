@@ -8,7 +8,7 @@
 %token PLUS MINUS TIMES DIVIDE ASSIGN (* type operators *)
 %token AND OR NOT (* logical operator *)
 %token GT LT EQ GEQ LEQ NEQ (* comparisons *)
-%token IF ELSEIF ELSE WHILE FOR RETURN (* statements *)
+%token IF ELSE WHILE FOR RETURN (* statements *)
 %token INT BOOL FLOAT VOID EXEC CHAR STRING LIST (* types *)
 %token <int> LITERAL
 %token <bool> BLIT
@@ -170,7 +170,7 @@ expr:
   | ID ASSIGN expr            { Assign($1, $3)         }
   | ID LPAREN args_opt RPAREN { Call($1, $3)  }
   | LPAREN expr RPAREN        { $2                   }
-  | exec EXITCODE             { Unop(ExitCode, $1) }
+  | exec EXITCODE             { PostUnop($1, Exitcode) }
   | RUN exec                  { Unop(Run, $1) }
   | exec                      { $1 }
   | index                     { $1 }

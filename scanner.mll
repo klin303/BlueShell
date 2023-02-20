@@ -37,7 +37,6 @@ rule tokenize = parse
 | ">="      { GEQ }
 | "<="      { LEQ }
 | "if"      { IF }            (* stmts *)
-| "else if" { ELSEIF }
 | "else"   { ELSE }
 | "for"    { FOR }
 | "while"  { WHILE }

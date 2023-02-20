@@ -18,6 +18,7 @@ type expr =
   | Id of string
   | Binop of expr * op * expr
   | Unop of uop * expr
+  | PostUnop of expr * uop 
   | Assign of string * expr
   | Call of string * expr list
   | Noexpr
@@ -59,6 +60,8 @@ let string_of_op = function
 let string_of_uop = function
     Neg -> "-"
   | Not -> "!"
+  | ExitCode -> "?"
+  | Run -> "./"
 
 let rec string_of_expr = function
     Literal(l) -> string_of_int l
@@ -92,6 +95,11 @@ let string_of_typ = function
   | Bool -> "bool"
   | Float -> "float"
   | Void -> "void"
+  | Exec -> "exec"
+  | Char -> "char"
+  | String -> "string"
+  | List -> "list"
+  | Function -> "func"
 
 let string_of_vdecl (t, id) = string_of_typ t ^ " " ^ id ^ ";\n"
 
