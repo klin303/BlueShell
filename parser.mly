@@ -21,6 +21,9 @@
 %right ASSIGN
 %left PLUS MINUS /* left means go left to right */
 %left TIMES DIVIDE /* lower the line, higher the precedence */
+%left CONS
+%right LENGTH
+%right INDEX
 
 %start full_expr
 %type <Ast.expr> full_expr

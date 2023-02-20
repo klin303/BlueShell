@@ -3,7 +3,7 @@
 (* Kenny Lin, Alan Luc, Tina Ma, Mary-Joy Sidhom *)
 
 type op = Add | Sub | Mult | Div | Equal | Neq | Less | Leq | Greater | Geq |
-          And | Or | Index | Cons | Length
+          And | Or | Index | Cons | Length | Concat | Seq | Pipe
 
 type uop = Neg | Not | ExitCode | Run
 
