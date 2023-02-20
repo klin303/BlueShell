@@ -9,7 +9,7 @@
 %token AND OR NOT (* logical operator *)
 %token GT LT EQ GEQ LEQ NEQ (* comparisons *)
 %token IF ELSEIF ELSE WHILE FOR RETURN (* statements *)
-%token INT BOOL FLOAT VOID EXEC CHAR STRING LIST
+%token INT BOOL FLOAT VOID EXEC CHAR STRING LIST (* types *)
 %token <int> LITERAL
 %token <bool> BLIT
 %token <string> ID FLIT
@@ -17,16 +17,25 @@
 %token PIPE RUN EXITCODE (* executable operators *)
 %token CONS LENGTH (* list operators *)
 
+%start program
+%type <Ast.program> program
+
 (* precedence *)
+%nonassoc EXITCODE
+%nonassoc RUN
+%nonassoc NOELSE
+%nonassoc ELSE
 %right ASSIGN
-%left PLUS MINUS /* left means go left to right */
-%left TIMES DIVIDE /* lower the line, higher the precedence */
-%left CONS
+%left OR
+%left AND
+%left EQ NEQ
+%left LT GT LEQ GEQ
+%left PLUS MINUS
+%left TIMES DIVIDE
+%right NOT
 %right LENGTH
 %right INDEX
-
-%start full_expr
-%type <Ast.expr> full_expr
+%left CONS
 
 %%
 
@@ -143,7 +152,7 @@ expr:
   | FLIT	         { Fliteral($1)           }
   | BLIT             { BoolLit($1)            }
   | ID               { Id($1)                 }
-  | 
+  | list             { List($1) }
   | expr PLUS   expr { Binop($1, Add,   $3)   }
   | expr MINUS  expr { Binop($1, Sub,   $3)   }
   | expr TIMES  expr { Binop($1, Mult,  $3)   }
