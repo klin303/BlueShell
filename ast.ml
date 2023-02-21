@@ -3,15 +3,17 @@
 (* Kenny Lin, Alan Luc, Tina Ma, Mary-Joy Sidhom *)
 
 type op = Add | Sub | Mult | Div | Equal | Neq | Less | Leq | Greater | Geq |
-          And | Or | Index | Cons | Length | Concat | Seq | Pipe | Path
+          And | Or | Index | Cons | Concat | Seq | Pipe
 
-type uop = Neg | Not | ExitCode | Run
+type uop = Neg | Not | ExitCode | Run | Path | Length
 
-type typ = Int | Bool | Float | Void | Exec | String | List | Function
+type typ = Int | Bool | Float | Void | Exec | Char | String | List | Function
 
 type bind = typ * string
 
-type body = bind | stmt
+type func_body = bind | stmt
+
+type program_elem = bind | stmt | func_decl
 
 type expr =
     Literal of int
@@ -19,7 +21,7 @@ type expr =
   | BoolLit of bool
   | Id of string
   | Binop of expr * op * expr
-  | Unop of uop * expr
+  | PreUnop of uop * expr
   | PostUnop of expr * uop 
   | Assign of string * expr
   | Call of string * expr list
@@ -38,10 +40,11 @@ type func_decl = {
     fname : string;
     formals : bind list;
     (* locals : bind list; *)
-    body : body list;
+    body : func_body list;
   }
 
-type program = bind list * func_decl list
+(* type program = bind list * func_decl list *)
+type program = program_elem list
 
 (* Pretty-printing functions *)
 

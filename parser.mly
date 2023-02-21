@@ -82,7 +82,7 @@ eargs_list:
   | eargs_list expr { $2 :: $1 }
 
 earg_index:
-    list LBRACKET expr RBRACKET { Binop($1, Index, $3) }
+    eargs_list LBRACKET expr RBRACKET { Binop($1, Index, $3) }
 
 (* Lists *)
 list:
@@ -181,15 +181,15 @@ expr:
   | expr GEQ    expr          { Binop($1, Geq,   $3)   }
   | expr AND    expr          { Binop($1, And,   $3)   }
   | expr OR     expr          { Binop($1, Or,    $3)   }
-  | MINUS expr %prec NOT      { Unop(Neg, $2)          }
-  | NOT expr                  { Unop(Not, $2)          }
+  | MINUS expr %prec NOT      { PreUnop(Neg, $2)          }
+  | NOT expr                  { PreUnop(Not, $2)          }
   | ID ASSIGN expr            { Assign($1, $3)         }
   | ID LPAREN args_opt RPAREN { Call($1, $3)  }
   | LPAREN expr RPAREN        { $2                   }
   | exec EXITCODE             { PostUnop($1, Exitcode) }
-  | PATH exec                 { Unop(Path, $1) }
-  | RUN exec                  { Unop(Run, $1) }
+  | PATH exec                 { PreUnop(Path, $1) }
+  | RUN exec                  { PreUnop(Run, $1) }
   | exec                      { $1 }
   | list_index                     { $1 }
   | list_cons                      { $1 }
-  | listlength                    { $1 }
+  | list_length                    { $1 }
