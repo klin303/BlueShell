@@ -3,7 +3,7 @@
 (* Kenny Lin, Alan Luc, Tina Ma, Mary-Joy Sidhom *)
 
 type op = Add | Sub | Mult | Div | Equal | Neq | Less | Leq | Greater | Geq |
-          And | Or | Index | Cons | Concat | Seq | Pipe
+          And | Or | Index | Cons | Pipe
 
 type uop = Neg | Not | ExitCode | Run | Path | Length
 
@@ -11,9 +11,9 @@ type typ = Int | Bool | Float | Void | Exec | Char | String | List | Function
 
 type bind = typ * string
 
-type func_body = bind | stmt
+(* type func_body = bind | stmt
 
-type program_elem = bind | stmt | func_decl
+type program_elem = bind | stmt | func_decl *)
 
 type expr =
     Literal of int
@@ -43,8 +43,8 @@ type func_decl = {
     body : func_body list;
   }
 
-(* type program = bind list * func_decl list *)
-type program = program_elem list
+type program = bind list * func_decl list
+(* type program = program_elem list *)
 
 (* Pretty-printing functions *)
 
@@ -61,12 +61,17 @@ let string_of_op = function
   | Geq -> ">="
   | And -> "&&"
   | Or -> "||"
+  | Cons -> "::"
+  | Pipe -> "|"
+  | Index -> "index"
 
 let string_of_uop = function
     Neg -> "-"
   | Not -> "!"
   | ExitCode -> "?"
   | Run -> "./"
+  | Path -> "$"
+  | Length -> "length"
 
 let rec string_of_expr = function
     Literal(l) -> string_of_int l
@@ -116,6 +121,12 @@ let string_of_fdecl fdecl =
   String.concat "" (List.map string_of_stmt fdecl.body) ^
   "}\n"
 
-let string_of_program (vars, funcs) =
-  String.concat "" (List.map string_of_vdecl vars) ^ "\n" ^
-  String.concat "\n" (List.map string_of_fdecl funcs)
+(* let string_of_program_elem elem =
+    match elem with
+      bind -> string_of_vdecl elem
+    | stmt -> string_of_stmt elem
+    | func_decl -> string_of_fdecl elem *)
+
+  let string_of_program (vars, funcs) =
+    String.concat "" (List.map string_of_vdecl vars) ^ "\n" ^
+    String.concat "\n" (List.map string_of_fdecl funcs)

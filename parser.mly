@@ -1,30 +1,30 @@
-(* parser.mly *)
-(* BlueShell *)
-(* Kenny Lin, Alan Luc, Tina Ma, Mary-Joy Sidhom *)
+/* parser.mly */
+/* BlueShell */
+/* Kenny Lin, Alan Luc, Tina Ma, Mary-Joy Sidhom */
 
 %{ open Ast %}
 
-%token SEMI LPAREN RPAREN LBRACE RBRACE COMMA LBRACKET RBRACKET (* strucutral tokens *)
-%token PLUS MINUS TIMES DIVIDE ASSIGN (* type operators *)
-%token AND OR NOT (* logical operator *)
-%token GT LT EQ GEQ LEQ NEQ (* comparisons *)
-%token IF ELSE WHILE FOR RETURN (* statements *)
-%token INT BOOL FLOAT VOID EXEC CHAR STRING LIST (* types *)
+%token SEMI LPAREN RPAREN LBRACE RBRACE COMMA LBRACKET RBRACKET /* strucutral tokens */
+%token PLUS MINUS TIMES DIVIDE ASSIGN /* type operators */
+%token AND OR NOT /* logical operator */
+%token GT LT EQ GEQ LEQ NEQ /* comparisons */
+%token IF ELSE WHILE FOR RETURN /* statements */
+%token INT BOOL FLOAT VOID EXEC CHAR STRING LIST /* types */
 %token <int> LITERAL
 %token <bool> BLIT
 %token <string> ID FLIT
 %token EOF
-%token PIPE RUN EXITCODE PATH (* executable operators *)
-%token CONS LENGTH (* list operators *)
+%token PIPE RUN EXITCODE PATH /* executable operators */
+%token CONS INDEX LEN /* list operators */
 
 %start program
 %type <Ast.program> program
 
-(* precedence *)
-%nonassoc EXITCODE
-%nonassoc PATH
-%nonassoc RUN
+/* precedence */
 %nonassoc NOELSE
+%left EXITCODE
+%right PATH RUN
+%left PIPE
 %nonassoc ELSE
 %right ASSIGN
 %left OR
@@ -34,7 +34,7 @@
 %left PLUS MINUS
 %left TIMES DIVIDE
 %right NOT
-%right LENGTH
+%right LEN
 %right INDEX
 %left CONS
 
@@ -57,17 +57,20 @@ typ:
   | CHAR  { Char }
   | STRING   { String }
   | LIST  { List }
-  | FUNC  { Function }
+  | fdecl  { Function }
 
-(* Executables *)
+/* Executables */
 exec:
   simple_exec       { $1 }
-  | exec PLUS exec  { Binop($1, Concat, $3) }
-  | exec TIMES exec { Binop($1, Seq, $3) }
+  | complex_exec      { $1 }
+
+complex_exec: 
+  exec PLUS exec    { Binop($1, Add, $3) }
+  | exec TIMES exec { Binop($1, Mult, $3) }
   | exec PIPE exec  { Binop($1, Pipe, $3) }
 
 simple_exec:
-  path earg_list         { Exec($1, $2) }
+  path earg_opt         { Exec($1, $2) }
 
 path:
   LITERAL           { Literal($1) }
@@ -84,7 +87,7 @@ eargs_list:
 earg_index:
     eargs_list LBRACKET expr RBRACKET { Binop($1, Index, $3) }
 
-(* Lists *)
+/* Lists */
 list:
     LBRACKET cont_list   { List($2) }
     | LBRACKET RBRACKET  { List(()) }
@@ -100,9 +103,9 @@ list_cons:
     expr CONS list { Binop($1, Cons, $3) }
 
 list_length:
-    LEN LPAREN list RPAREN { PreUnop(Length, $3) }
+    LEN list { PreUnop(Length, $2) }
 
-(* Functions *)
+/* Functions */
 fdecl:
    typ ID LPAREN formals_opt RPAREN LBRACE body_list RBRACE
      { { typ = $1;
@@ -131,7 +134,7 @@ body_list:
 
 body:
   vdecl { $1 }
-  stmt { $1 }
+  | stmt { $1 }
 
 stmt_list:
     /* nothing */  { [] }
@@ -159,7 +162,7 @@ args_list:
     expr                    { [$1] }
   | args_list COMMA expr { $3 :: $1 }
 
-(* Expressions *)
+/* Expressions */
 full_expr:
   expr EOF { $1 }
 
@@ -187,8 +190,9 @@ expr:
   | ID LPAREN args_opt RPAREN { Call($1, $3)  }
   | LPAREN expr RPAREN        { $2                   }
   | exec EXITCODE             { PostUnop($1, Exitcode) }
-  | PATH exec                 { PreUnop(Path, $1) }
-  | RUN exec                  { PreUnop(Run, $1) }
+  | earg_index                     { $1 }
+  | PATH exec                 { PreUnop(Path, $2) }
+  | RUN exec                  { PreUnop(Run, $2) }
   | exec                      { $1 }
   | list_index                     { $1 }
   | list_cons                      { $1 }
