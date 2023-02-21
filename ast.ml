@@ -11,15 +11,14 @@ type typ = Int | Bool | Float | Void | Exec | Char | String | List | Function
 
 type bind = typ * string
 
-(* type func_body = bind | stmt
-
-type program_elem = bind | stmt | func_decl *)
-
 type expr =
     Literal of int
   | Fliteral of string
   | BoolLit of bool
   | Id of string
+  | Char of string
+  | String of string
+  | Exec of expr * expr
   | Binop of expr * op * expr
   | PreUnop of uop * expr
   | PostUnop of expr * uop 
@@ -35,16 +34,16 @@ type stmt =
   | For of expr * expr * expr * stmt
   | While of expr * stmt
 
+type func_body = FuncBind of bind | FuncStmt of stmt
+
 type func_decl = {
     typ : typ;
     fname : string;
     formals : bind list;
-    (* locals : bind list; *)
     body : func_body list;
   }
 
 type program = bind list * func_decl list
-(* type program = program_elem list *)
 
 (* Pretty-printing functions *)
 
@@ -79,9 +78,11 @@ let rec string_of_expr = function
   | BoolLit(true) -> "true"
   | BoolLit(false) -> "false"
   | Id(s) -> s
+  | Exec(e1, e2) -> "exec" 
   | Binop(e1, o, e2) ->
       string_of_expr e1 ^ " " ^ string_of_op o ^ " " ^ string_of_expr e2
-  | Unop(o, e) -> string_of_uop o ^ string_of_expr e
+  | PreUnop(o, e) -> string_of_uop o ^ string_of_expr e
+  | PostUnop(e, o) -> string_of_expr e ^ string_of_uop o
   | Assign(v, e) -> v ^ " = " ^ string_of_expr e
   | Call(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
@@ -113,12 +114,15 @@ let string_of_typ = function
 
 let string_of_vdecl (t, id) = string_of_typ t ^ " " ^ id ^ ";\n"
 
+let string_of_func_body = function
+    FuncBind(b) -> string_of_vdecl b
+  | FuncStmt(s) -> string_of_stmt s
+
 let string_of_fdecl fdecl =
   string_of_typ fdecl.typ ^ " " ^
   fdecl.fname ^ "(" ^ String.concat ", " (List.map snd fdecl.formals) ^
   ")\n{\n" ^
-  String.concat "" (List.map string_of_vdecl fdecl.locals) ^
-  String.concat "" (List.map string_of_stmt fdecl.body) ^
+  String.concat "" (List.map string_of_func_body fdecl.body) ^
   "}\n"
 
 (* let string_of_program_elem elem =
@@ -127,6 +131,6 @@ let string_of_fdecl fdecl =
     | stmt -> string_of_stmt elem
     | func_decl -> string_of_fdecl elem *)
 
-  let string_of_program (vars, funcs) =
-    String.concat "" (List.map string_of_vdecl vars) ^ "\n" ^
-    String.concat "\n" (List.map string_of_fdecl funcs)
+let string_of_program (vars, funcs) =
+  String.concat "" (List.map string_of_vdecl vars) ^ "\n" ^
+  String.concat "\n" (List.map string_of_fdecl funcs)

@@ -17,7 +17,7 @@ rule tokenize = parse
 | '}'      { RBRACE }
 | ';'      { SEMI }
 | ','      { COMMA }
-| "'"      { SNGLQUOTE }
+| '\''     { SNGLQUOTE }
 | '"'      { DBLQUOTE }
 | '='       { ASSIGN }
 | '+'      { PLUS }       (* arithmetic symbols *)
@@ -41,14 +41,13 @@ rule tokenize = parse
 | "for"    { FOR }
 | "while"  { WHILE }
 | "return" { RETURN }
-| "print"   { PRINT }
 | "int"    { INT }      (* types *)
 | "bool"   { BOOL }
 | "float"  { FLOAT }
 | "void"    { VOID }
 | "exec"    { EXEC }
-| "char"    { CHAR }
-| "string"  { STRING }
+| "char"    { character_of lexbuf }
+| "string"  { string_of (Buffer.create 10) lexbuf }
 | "list"    { LIST }
 | "true"    { BLIT(true) }
 | "false"   { BLIT(false) }
@@ -59,7 +58,7 @@ rule tokenize = parse
 | '['       { LBRACKET }  (* list operators *)
 | ']'       { RBRACKET }
 | "::"      { CONS }
-| "len"     { LENGTH }
+| "len"     { LEN }
 | digits as lxm { LITERAL(int_of_string lxm) }
 | digits '.'  digit* as lxm { FLIT(lxm) }
 | ['A'-'Z' 'a'-'z']['A'-'Z' 'a'-'z' '0'-'9' '_']* + as lit { ID(lit) }
@@ -68,8 +67,24 @@ rule tokenize = parse
 
 and multiline_comment = parse
   "*/" { tokenize lexbuf }
-  | _ { comment lexbuf }
+  | _ { multiline_comment lexbuf }
 
 and singleline_comment = parse
-  "\n"{ tokenize lexbuf }
-  | _ { singleline_comment }
+  "\n" { tokenize lexbuf }
+  | _ { singleline_comment lexbuf }
+
+and character_of = parse
+  '\'' { CHAR("") }
+  | '\\' '\'' '\'' { CHAR("'") }
+  | '\\' 'n' '\'' { CHAR("\n") }
+  | [^ '"' '\\'] as single_char '\'' { CHAR(String.make 1 single_char) }
+  | _ { raise (Failure("invalid char")) }
+  | eof { raise (Failure("read EOF with char open")) }
+
+and string_of buf = parse
+  '"' { STRING(Buffer.contents buf) }
+  | '\\' 'n' { Buffer.add_char buf '\n'; string_of buf lexbuf }
+  | '\\' '"' { Buffer.add_char buf '"'; string_of buf lexbuf }
+  | [^ '"' '\\']+ as cont_string { Buffer.add_string buf cont_string; string_of buf lexbuf }
+  | _ as char { raise (Failure("illegal character in string" ^ Char.escaped char)) }
+  | eof { raise (Failure("read EOF with string open")) }

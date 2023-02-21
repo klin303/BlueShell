@@ -4,7 +4,7 @@
 
 %{ open Ast %}
 
-%token SEMI LPAREN RPAREN LBRACE RBRACE COMMA LBRACKET RBRACKET /* strucutral tokens */
+%token SEMI LPAREN RPAREN LBRACE RBRACE COMMA LBRACKET RBRACKET SNGLQUOTE DBLQUOTE /* strucutral tokens */
 %token PLUS MINUS TIMES DIVIDE ASSIGN /* type operators */
 %token AND OR NOT /* logical operator */
 %token GT LT EQ GEQ LEQ NEQ /* comparisons */
@@ -12,7 +12,7 @@
 %token INT BOOL FLOAT VOID EXEC CHAR STRING LIST /* types */
 %token <int> LITERAL
 %token <bool> BLIT
-%token <string> ID FLIT
+%token <string> ID FLIT CHAR STRING
 %token EOF
 %token PIPE RUN EXITCODE PATH /* executable operators */
 %token CONS INDEX LEN /* list operators */
@@ -73,8 +73,7 @@ simple_exec:
   path earg_opt         { Exec($1, $2) }
 
 path:
-  LITERAL           { Literal($1) }
-  | ID              { Id($1) }
+  expr              { $1 }
 
 earg_opt:
     /* nothing */ { [] }
@@ -171,7 +170,6 @@ expr:
   | FLIT	         { Fliteral($1)           }
   | BLIT             { BoolLit($1)            }
   | ID               { Id($1)                 }
-  | list             { List($1) }
   | expr PLUS   expr { Binop($1, Add,   $3)   }
   | expr MINUS  expr { Binop($1, Sub,   $3)   }
   | expr TIMES  expr { Binop($1, Mult,  $3)   }
@@ -194,6 +192,7 @@ expr:
   | PATH exec                 { PreUnop(Path, $2) }
   | RUN exec                  { PreUnop(Run, $2) }
   | exec                      { $1 }
+  | list                      { List($1) }
   | list_index                     { $1 }
   | list_cons                      { $1 }
   | list_length                    { $1 }
