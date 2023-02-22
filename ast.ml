@@ -35,13 +35,14 @@ type stmt =
   | For of expr * expr * expr * stmt
   | While of expr * stmt
 
-type func_body = FuncBind of bind | FuncStmt of stmt
+(* type func_body = FuncBind of bind | FuncStmt of stmt *)
 
 type func_decl = {
     typ : typ;
     fname : string;
     formals : bind list;
-    body : func_body list;
+    locals : bind list;
+    body : stmt list;
   }
 
 type program = bind list * func_decl list
@@ -118,15 +119,23 @@ let string_of_typ = function
 
 let string_of_vdecl (t, id) = string_of_typ t ^ " " ^ id ^ ";\n"
 
-let string_of_func_body = function
+(* let string_of_func_body = function
     FuncBind(b) -> string_of_vdecl b
-  | FuncStmt(s) -> string_of_stmt s
+  | FuncStmt(s) -> string_of_stmt s *)
+
+(* let string_of_fdecl fdecl =
+  string_of_typ fdecl.typ ^ " " ^
+  fdecl.fname ^ "(" ^ String.concat ", " (List.map snd fdecl.formals) ^
+  ")\n{\n" ^
+  String.concat "" (List.map string_of_func_body fdecl.body) ^
+  "}\n" *)
 
 let string_of_fdecl fdecl =
   string_of_typ fdecl.typ ^ " " ^
   fdecl.fname ^ "(" ^ String.concat ", " (List.map snd fdecl.formals) ^
   ")\n{\n" ^
-  String.concat "" (List.map string_of_func_body fdecl.body) ^
+  String.concat "" (List.map string_of_vdecl fdecl.locals) ^
+  String.concat "" (List.map string_of_stmt fdecl.body) ^
   "}\n"
 
 (* let string_of_program_elem elem =

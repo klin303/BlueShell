@@ -81,10 +81,6 @@ eargs_list:
     expr                    { [$1] }
   | eargs_list expr { $2 :: $1 }
 
-exargs_list:
-   expr                    { [$1] }
-  | eargs_list expr { $2 :: $1 }
-
 earg_opt:
   /* nothing */ { [] }
   | eargs_list { List.rev $1 }
@@ -112,11 +108,12 @@ list_length:
 
 /* Functions */
 fdecl:
-  typ ID LPAREN formals_opt RPAREN LBRACE body_list RBRACE
+  typ ID LPAREN formals_opt RPAREN LBRACE vdecl_list stmt_list RBRACE
      { { typ = $1;
 	fname = $2;
 	formals = List.rev $4;
-	body = List.rev $7; } }
+    locals = List.rev $7;
+	body = List.rev $8; } }
 
 formals_opt:
     /* nothing */ { [] }
@@ -133,13 +130,13 @@ vdecl_list:
 vdecl:
    typ ID SEMI { ($1, $2) }
 
-body:
-  vdecl { $1 }
-  | stmt { $1 }
+// body:
+//   vdecl { $1 }
+//   | stmt { $1 }
 
-body_list:
-  /* nothing */ { [] }
-| body_list body { $2 :: $1 }
+// body_list:
+//   /* nothing */ { [] }
+//   | body_list body { $2 :: $1 }
 
 stmt_list:
     /* nothing */  { [] }
@@ -168,9 +165,6 @@ args_list:
   | args_list COMMA expr { $3 :: $1 }
 
 /* Expressions */
-full_expr:
-  expr EOF { $1 }
-
 expr:
     LITERAL          { Literal($1)            }
   | FLIT	         { Fliteral($1)           }
@@ -193,12 +187,12 @@ expr:
   | ID ASSIGN expr            { Assign($1, $3)         }
   | ID LPAREN args_opt RPAREN { Call($1, $3)  }
   | LPAREN expr RPAREN        { $2                   }
-  | exec EXITCODE             { PostUnop($1, Exitcode) }
+  | exec EXITCODE             { PostUnop($1, ExitCode) }
   | earg_index                     { $1 }
   | PATH exec                 { PreUnop(Path, $2) }
   | RUN exec                  { PreUnop(Run, $2) }
   | exec                      { $1 }
-  | list                      { List($1) }
+  | list                      { $1 }
   | list_index                     { $1 }
   | list_cons                      { $1 }
   | list_length                    { $1 }
