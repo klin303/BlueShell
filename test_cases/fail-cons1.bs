@@ -1,0 +1,7 @@
+/*
+    use cons on non-list variable
+*/
+
+int a;
+a = 3;
+5 :: a;

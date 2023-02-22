@@ -1,0 +1,8 @@
+/*
+    Test simple int assignment 
+*/
+
+int a;
+a = 3;
+print(a);
+

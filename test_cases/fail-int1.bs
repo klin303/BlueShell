@@ -1,0 +1,5 @@
+/*
+    type difference between variable and value
+*/
+int fail;
+fail  = "not int";

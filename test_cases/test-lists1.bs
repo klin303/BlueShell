@@ -1,0 +1,14 @@
+/*
+    Creates two variables and a function that returns void.
+    Then creates a list consisting of the two variables, a string, and a function.
+*/
+
+
+int four = 4;
+int hello = "hello"
+void helloWorld() {
+    print(helloWorld)
+}
+
+List l;
+l  = [hello, "world", four, true, helloWorld];
