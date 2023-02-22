@@ -21,6 +21,7 @@
 %type <Ast.program> program
 
 /* precedence */
+%nonassoc EMPTYSTMTLIST
 %nonassoc ID
 %nonassoc NOELSE
 %left EXITCODE
@@ -39,6 +40,7 @@
 %left CONS
 %right LBRACKET LPAREN
 %right MORE
+
 
 %%
 
@@ -68,7 +70,7 @@ exec:
 
 
 simple_exec:
-  path LBRACE earg_opt RBRACE        { Exec($1, $3) }
+  path eargs_list        { Exec($1, $2) }
 
 // complex_exec:
 //   exec PLUS exec     { Binop($1, Add, $3) }
@@ -78,15 +80,23 @@ simple_exec:
 
 path:
   ID              { Id($1) }
-  | STRING        { $1 }
+  | STRING        { String($1) }
 
 eargs_list:
-    expr                    { [$1] }
-  | eargs_list expr { $2 :: $1 }
+  LBRACE cont_eargs_list   { $2 }
+  | LBRACE RBRACE { [] }
 
-earg_opt:
-  /* nothing */ { [] }
-  | eargs_list %prec MORE { List.rev $1 }
+cont_eargs_list:
+  expr COMMA cont_eargs_list    { $1 :: $3 }
+  | expr RBRACE        { [$1] }
+
+// eargs_list:
+//     expr                    { [$1] }
+//   | eargs_list expr { $2 :: $1 }
+
+// earg_opt:
+//   /* nothing */ { [] }
+//   | eargs_list %prec MORE { List.rev $1 }
 
 /* earg_index:
   ID LBRACKET expr RBRACKET { Binop($1, Index, $3) } *
@@ -142,7 +152,7 @@ vdecl:
 //   | body_list body { $2 :: $1 }
 
 stmt_list:
-    /* nothing */  { [] }
+    %prec EMPTYSTMTLIST /* nothing */  { [] }
   | stmt_list stmt { $2 :: $1 }
 
 stmt:
@@ -183,10 +193,10 @@ expr:
   | ID ASSIGN expr            { Assign($1, $3)         }
   | ID LPAREN args_opt RPAREN { Call($1, $3)  }
   | LPAREN expr RPAREN        { $2                   }
-  | expr EXITCODE             { Iduop($1, ExitCode) }
+  | expr EXITCODE             { PostUnop($1, ExitCode) }
   | index                     { $1 }
-  | PATH expr                { Iduop($2, Path) }
-  | RUN expr                  { Iduop($2, Run) }
+  | PATH expr                { PreUnop(Path, $2) }
+  | RUN expr                  { PreUnop(Run, $2) }
   | exec                      { $1 }
   | list                      { $1 }
   | list_cons                      { $1 }

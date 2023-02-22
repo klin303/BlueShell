@@ -7,9 +7,9 @@ type op = Add | Sub | Mult | Div | Equal | Neq | Less | Leq | Greater | Geq |
 
 type idop = Index | Cons
 
-type iduop =  ExitCode | Run | Path | Length
+type iduop = Length
 
-type uop = Neg | Not
+type uop = Neg | Not | ExitCode | Run | Path
 
 type typ = Int | Bool | Float | Void | Exec | Char | String | List | Function
 
@@ -72,6 +72,9 @@ let string_of_op = function
 
 let string_of_uop = function
     Neg -> "-"
+  | ExitCode -> "?"
+  | Run -> "./"
+  | Path -> "$"
   | Not -> "!"
 
 let string_of_idop = function
@@ -79,10 +82,7 @@ let string_of_idop = function
   | Cons -> "::"
 
 let string_of_iduop = function
-    ExitCode -> "?"
-  | Run -> "./"
-  | Path -> "$"
-  | Length -> "length"
+    Length -> "length"
 
 let rec string_of_expr = function
     Literal(l) -> string_of_int l
