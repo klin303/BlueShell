@@ -15,12 +15,13 @@
 %token <string> ID FLIT CHAR STRING
 %token EOF
 %token PIPE RUN EXITCODE PATH /* executable operators */
-%token CONS INDEX LEN /* list operators */
+%token CONS LEN /* list operators */
 
 %start program
 %type <Ast.program> program
 
 /* precedence */
+%nonassoc ID
 %nonassoc NOELSE
 %left EXITCODE
 %right PATH RUN
@@ -35,8 +36,9 @@
 %left TIMES DIVIDE
 %right NOT
 %right LEN
-%right INDEX
 %left CONS
+%right LBRACKET LPAREN
+%right MORE
 
 %%
 
@@ -62,20 +64,21 @@ typ:
 /* Executables */
 exec:
   simple_exec       { $1 }
-  | complex_exec      { $1 }
+//   | complex_exec   { $1 }
 
 
 simple_exec:
   path earg_opt         { Exec($1, $2) }
 
-complex_exec:
-  exec PLUS exec    { Binop($1, Add, $3) }
-  | exec TIMES exec { Binop($1, Mult, $3) }
-  | exec PIPE exec  { Binop($1, Pipe, $3) }
+// complex_exec:
+//   exec PLUS exec     { Binop($1, Add, $3) }
+//   | exec TIMES exec  { Binop($1, Mult, $3) }
+//   | exec PIPE exec  { Binop($1, Pipe, $3) }
 
 
 path:
-  expr              { $1 }
+  ID              { Id($1) }
+  | STRING        { $1 }
 
 eargs_list:
     expr                    { [$1] }
@@ -83,10 +86,10 @@ eargs_list:
 
 earg_opt:
   /* nothing */ { [] }
-  | eargs_list { List.rev $1 }
+  | eargs_list %prec MORE { List.rev $1 }
 
-earg_index:
-  exec LBRACKET expr RBRACKET { Binop($1, Index, $3) }
+/* earg_index:
+  ID LBRACKET expr RBRACKET { Binop($1, Index, $3) } *
 
 /* Lists */
 list:
@@ -94,17 +97,17 @@ list:
   | LBRACKET RBRACKET  { Noexpr }
 
 cont_list:
-  expr COMMA cont_list    { List($1, $3) }
-  | expr RBRACKET         { List($1, Noexpr) }
+  expr COMMA cont_list    { List(($1, $3)) }
+  | expr RBRACKET         { List(($1, Noexpr)) }
 
-list_index:
-  list LBRACKET expr RBRACKET { Binop($1, Index, $3) }
+index:
+  ID LBRACKET expr RBRACKET { Idop($1, $3, Index) }
 
 list_cons:
-    expr CONS list { Binop($1, Cons, $3) }
+  expr CONS ID { Idop($3, $1, Cons) }
 
 list_length:
-  LEN list { PreUnop(Length, $2) }
+  LEN ID { Iduop($2, Length) }
 
 /* Functions */
 fdecl:
@@ -156,20 +159,12 @@ expr_opt:
     /* nothing */ { Noexpr }
   | expr          { $1 }
 
-args_opt:
-    /* nothing */ { [] }
-  | args_list  { List.rev $1 }
-
-args_list:
-    expr                    { [$1] }
-  | args_list COMMA expr { $3 :: $1 }
-
 /* Expressions */
 expr:
     LITERAL          { Literal($1)            }
   | FLIT	         { Fliteral($1)           }
   | BLIT             { BoolLit($1)            }
-  | ID               { Id($1)                 }
+  | ID SEMI              { Id($1)                 }
   | expr PLUS   expr { Binop($1, Add,   $3)   }
   | expr MINUS  expr { Binop($1, Sub,   $3)   }
   | expr TIMES  expr { Binop($1, Mult,  $3)   }
@@ -182,17 +177,25 @@ expr:
   | expr GEQ    expr          { Binop($1, Geq,   $3)   }
   | expr AND    expr          { Binop($1, And,   $3)   }
   | expr OR     expr          { Binop($1, Or,    $3)   }
+  | expr PIPE   expr          { Binop($1, Pipe, $3) }
   | MINUS expr %prec NOT      { PreUnop(Neg, $2)          }
   | NOT expr                  { PreUnop(Not, $2)          }
   | ID ASSIGN expr            { Assign($1, $3)         }
   | ID LPAREN args_opt RPAREN { Call($1, $3)  }
   | LPAREN expr RPAREN        { $2                   }
-  | exec EXITCODE             { PostUnop($1, ExitCode) }
-  | earg_index                     { $1 }
-  | PATH exec                 { PreUnop(Path, $2) }
-  | RUN exec                  { PreUnop(Run, $2) }
+  | expr EXITCODE             { Iduop($1, ExitCode) }
+  | index                     { $1 }
+  | PATH expr                { Iduop($2, Path) }
+  | RUN expr                  { Iduop($2, Run) }
   | exec                      { $1 }
   | list                      { $1 }
-  | list_index                     { $1 }
   | list_cons                      { $1 }
   | list_length                    { $1 }
+
+args_opt:
+    /* nothing */ { [] }
+  | args_list  { List.rev $1 }
+
+args_list:
+    expr                    { [$1] }
+  | args_list COMMA expr { $3 :: $1 }

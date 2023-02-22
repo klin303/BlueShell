@@ -3,9 +3,13 @@
 (* Kenny Lin, Alan Luc, Tina Ma, Mary-Joy Sidhom *)
 
 type op = Add | Sub | Mult | Div | Equal | Neq | Less | Leq | Greater | Geq |
-          And | Or | Index | Cons | Pipe
+          And | Or | Pipe
 
-type uop = Neg | Not | ExitCode | Run | Path | Length
+type idop = Index | Cons
+
+type iduop =  ExitCode | Run | Path | Length
+
+type uop = Neg | Not
 
 type typ = Int | Bool | Float | Void | Exec | Char | String | List | Function
 
@@ -20,6 +24,8 @@ type expr =
   | String of string
   | Exec of expr * expr list
   | Binop of expr * op * expr
+  | Idop of string * expr * idop
+  | Iduop of string * iduop
   | PreUnop of uop * expr
   | PostUnop of expr * uop
   | Assign of string * expr
@@ -62,14 +68,18 @@ let string_of_op = function
   | Geq -> ">="
   | And -> "&&"
   | Or -> "||"
-  | Cons -> "::"
   | Pipe -> "|"
-  | Index -> "index"
 
 let string_of_uop = function
     Neg -> "-"
   | Not -> "!"
-  | ExitCode -> "?"
+
+let string_of_idop = function
+    Index -> "index"
+  | Cons -> "::"
+
+let string_of_iduop = function
+    ExitCode -> "?"
   | Run -> "./"
   | Path -> "$"
   | Length -> "length"
@@ -83,6 +93,8 @@ let rec string_of_expr = function
   | Exec(e1, e2) -> "exec"
   | Binop(e1, o, e2) ->
       string_of_expr e1 ^ " " ^ string_of_op o ^ " " ^ string_of_expr e2
+  | Idop(s, e, o) -> s ^ string_of_expr e ^ string_of_idop o
+  | Iduop(s, o) -> s ^ string_of_iduop o
   | PreUnop(o, e) -> string_of_uop o ^ string_of_expr e
   | PostUnop(e, o) -> string_of_expr e ^ string_of_uop o
   | Assign(v, e) -> v ^ " = " ^ string_of_expr e
