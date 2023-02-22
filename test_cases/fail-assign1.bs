@@ -1,0 +1,4 @@
+/*
+    Invalid variable name
+*/
+string 23;
