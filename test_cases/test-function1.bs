@@ -1,0 +1,7 @@
+/*
+    Creates a function that adds two 
+*/
+
+int add(int a, int b) {
+    return a + b;
+}

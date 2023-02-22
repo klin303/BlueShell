@@ -1,0 +1,8 @@
+/*
+    Test simple signed int assignment 
+*/
+
+int a;
+a = -3;
+print(a);
+

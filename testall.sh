@@ -8,3 +8,6 @@
 # script.
 
 echo "UM THIS ISNT DONE YET"
+
+tests=$(find test_cases -name "test-*.bs")
+fails=$(find test_cases -name "fail-*.bs")
