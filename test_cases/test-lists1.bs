@@ -5,9 +5,9 @@
 
 
 int four = 4;
-int hello = "hello"
+int hello = "hello";
 void helloWorld() {
-    print(helloWorld)
+    print(helloWorld);
 }
 
 List l;

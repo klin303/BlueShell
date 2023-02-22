@@ -1,7 +1,5 @@
 /*
-    use cons on non-list variable
+    mis-use cons
 */
 
-int a;
-a = 3;
-5 :: a;
+5 ::;
