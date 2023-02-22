@@ -55,6 +55,7 @@ rule tokenize = parse
 | "./"      { RUN }
 | "?"       { EXITCODE }
 | "$"       { PATH }
+| "&"       { AMP }
 | '['       { LBRACKET }  (* list operators *)
 | ']'       { RBRACKET }
 | "::"      { CONS }
