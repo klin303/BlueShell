@@ -35,11 +35,11 @@ clean :
 
 # Building the ziploc
 
-TESTS = 
-	lists1 list2 int1 function1 exec1
+TESTS = \
+	# Hi Tina. Add succ tests here.
 
-FAILS = 
-	assign1 cons1 exec1 function1 int1
+FAILS = \
+	# Add fail tests here. Bye Tina.
 
 TESTFILES = $(TESTS:%=test-%.bs) $(TESTS:%=test-%.out) \
 	    $(FAILS:%=fail-%.bs) $(FAILS:%=fail-%.err)
@@ -49,6 +49,3 @@ ZIPFILES = ast.ml Makefile toplevel.ml parser.mly README scanner.mll \
 
 bostonbitpackers.zip : $(ZIPFILES)
 	zip bostonbitpackers.zip $(ZIPFILES)
-
-print_tests: 
-	echo $(TESTS) &&  echo $(FAILS)

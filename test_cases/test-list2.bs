@@ -1,3 +1,0 @@
-List one;
-one = [1, "haha"];
-print(one[0]);

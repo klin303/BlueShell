@@ -1,7 +1,0 @@
-/*
-    Creates and executes an executable with no arguments
-*/
-
-exec e1;
-e1 = "testprogram";
-./e1;

@@ -14,13 +14,9 @@ LISTS:
 FIRST CLASS FUNCTIONS:
 - everything
 
-- can we return lists from functions? 
 
 
 
 OTHER:
 - exceptions??? - should probably have this but maybe not in first iteration?
 - null? do we need something of this vibe - yes we should
-
-
-

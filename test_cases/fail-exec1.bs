@@ -1,6 +1,0 @@
-/*
-    Users can not pass in a list as an argument to an executable
-*/
-
-exec fail;
-fail  = "aprogram" ["boo!", "no lists please!"];
