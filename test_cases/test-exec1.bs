@@ -1,5 +1,5 @@
 /*
-    Creates and executes an executable with no arguments
+    Creates and executes with a string path and no arguments
 */
 
 exec e1;

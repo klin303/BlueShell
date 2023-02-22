@@ -1,0 +1,8 @@
+exec e;
+int foo(int x, int y) {
+e = 1 {a, b, c} + "hi" {a, b, c};
+}
+
+int foo(int x, int y) {
+s = "hello";
+}
