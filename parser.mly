@@ -4,12 +4,12 @@
 
 %{ open Ast %}
 
-%token SEMI LPAREN RPAREN LBRACE RBRACE COMMA LBRACKET RBRACKET SNGLQUOTE DBLQUOTE /* strucutral tokens */
+%token SEMI LPAREN RPAREN LBRACE RBRACE COMMA LBRACKET RBRACKET /* strucutral tokens */
 %token PLUS MINUS TIMES DIVIDE ASSIGN /* type operators */
 %token AND OR NOT /* logical operator */
 %token GT LT EQ GEQ LEQ NEQ /* comparisons */
 %token IF ELSE WHILE FOR RETURN /* statements */
-%token INT BOOL FLOAT VOID EXEC CHAR STRING LIST /* types */
+%token INT BOOL FLOAT VOID EXEC CHR STR LIST /* types */
 %token <int> LITERAL
 %token <bool> BLIT
 %token <string> ID FLIT CHAR STRING
@@ -54,9 +54,9 @@ typ:
   | FLOAT { Float  }
   | VOID  { Void   }
   | EXEC  { Exec   }
-  | CHAR  { Char }
-  | STRING   { String }
-  | LIST  { List }
+  | CHR  { Char }
+  | STR   { String }
+  | list     { List }
   | fdecl  { Function }
 
 /* Executables */
@@ -64,53 +64,59 @@ exec:
   simple_exec       { $1 }
   | complex_exec      { $1 }
 
-complex_exec: 
-  exec PLUS exec    { Binop($1, Add, $3) }
-  | exec TIMES exec { Binop($1, Mult, $3) }
-  | exec PIPE exec  { Binop($1, Pipe, $3) }
 
 simple_exec:
   path earg_opt         { Exec($1, $2) }
 
+complex_exec:
+  exec PLUS exec    { Binop($1, Add, $3) }
+  | exec TIMES exec { Binop($1, Mult, $3) }
+  | exec PIPE exec  { Binop($1, Pipe, $3) }
+
+
 path:
   expr              { $1 }
-
-earg_opt:
-    /* nothing */ { [] }
-  | eargs_list  { List.rev $1 }
 
 eargs_list:
     expr                    { [$1] }
   | eargs_list expr { $2 :: $1 }
 
+exargs_list:
+   expr                    { [$1] }
+  | eargs_list expr { $2 :: $1 }
+
+earg_opt:
+  /* nothing */ { [] }
+  | eargs_list { List.rev $1 }
+
 earg_index:
-    eargs_list LBRACKET expr RBRACKET { Binop($1, Index, $3) }
+  exec LBRACKET expr RBRACKET { Binop($1, Index, $3) }
 
 /* Lists */
 list:
-    LBRACKET cont_list   { List($2) }
-    | LBRACKET RBRACKET  { List(()) }
+  LBRACKET cont_list   { $2 }
+  | LBRACKET RBRACKET  { Noexpr }
 
 cont_list:
-    expr COMMA cont_list    { ($1, $3) }
-    | expr RBRACKET         { ($1, ()) }
+  expr COMMA cont_list    { List($1, $3) }
+  | expr RBRACKET         { List($1, Noexpr) }
 
 list_index:
-    list LBRACKET expr RBRACKET { Binop($1, Index, $3) }
+  list LBRACKET expr RBRACKET { Binop($1, Index, $3) }
 
 list_cons:
     expr CONS list { Binop($1, Cons, $3) }
 
 list_length:
-    LEN list { PreUnop(Length, $2) }
+  LEN list { PreUnop(Length, $2) }
 
 /* Functions */
 fdecl:
-   typ ID LPAREN formals_opt RPAREN LBRACE body_list RBRACE
+  typ ID LPAREN formals_opt RPAREN LBRACE body_list RBRACE
      { { typ = $1;
-	 fname = $2;
-	 formals = List.rev $4;
-	 body = List.rev $7; } }
+	fname = $2;
+	formals = List.rev $4;
+	body = List.rev $7; } }
 
 formals_opt:
     /* nothing */ { [] }
@@ -127,13 +133,13 @@ vdecl_list:
 vdecl:
    typ ID SEMI { ($1, $2) }
 
-body_list:
-  /* nothing */ { [] }
-| body_list body { $2 :: $1 }
-
 body:
   vdecl { $1 }
   | stmt { $1 }
+
+body_list:
+  /* nothing */ { [] }
+| body_list body { $2 :: $1 }
 
 stmt_list:
     /* nothing */  { [] }

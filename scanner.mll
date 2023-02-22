@@ -17,8 +17,8 @@ rule tokenize = parse
 | '}'      { RBRACE }
 | ';'      { SEMI }
 | ','      { COMMA }
-| '\''     { SNGLQUOTE }
-| '"'      { DBLQUOTE }
+| '\''     { character_of lexbuf }
+| '"'      { string_of (Buffer.create 10) lexbuf }
 | '='       { ASSIGN }
 | '+'      { PLUS }       (* arithmetic symbols *)
 | '-'      { MINUS }
@@ -46,8 +46,8 @@ rule tokenize = parse
 | "float"  { FLOAT }
 | "void"    { VOID }
 | "exec"    { EXEC }
-| "char"    { character_of lexbuf }
-| "string"  { string_of (Buffer.create 10) lexbuf }
+| "char"    { CHR }
+| "string"  { STR }
 | "list"    { LIST }
 | "true"    { BLIT(true) }
 | "false"   { BLIT(false) }

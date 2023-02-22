@@ -18,12 +18,13 @@ type expr =
   | Id of string
   | Char of string
   | String of string
-  | Exec of expr * expr
+  | Exec of expr * expr list
   | Binop of expr * op * expr
   | PreUnop of uop * expr
-  | PostUnop of expr * uop 
+  | PostUnop of expr * uop
   | Assign of string * expr
   | Call of string * expr list
+  | List of expr * expr
   | Noexpr
 
 type stmt =
@@ -78,7 +79,7 @@ let rec string_of_expr = function
   | BoolLit(true) -> "true"
   | BoolLit(false) -> "false"
   | Id(s) -> s
-  | Exec(e1, e2) -> "exec" 
+  | Exec(e1, e2) -> "exec"
   | Binop(e1, o, e2) ->
       string_of_expr e1 ^ " " ^ string_of_op o ^ " " ^ string_of_expr e2
   | PreUnop(o, e) -> string_of_uop o ^ string_of_expr e
@@ -86,6 +87,9 @@ let rec string_of_expr = function
   | Assign(v, e) -> v ^ " = " ^ string_of_expr e
   | Call(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
+  | Char(c) -> c
+  | String(s) -> s
+  | List((fst, rest)) ->string_of_expr fst ^ ", " ^ string_of_expr rest
   | Noexpr -> ""
 
 let rec string_of_stmt = function
