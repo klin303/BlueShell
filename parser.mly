@@ -79,8 +79,8 @@ simple_exec:
 
 
 path:
-  ID              { Id($1) }
-  | STRING        { String($1) }
+   ID              { Id($1) }
+   | STRING        { String($1) }
 
 eargs_list:
   LBRACE cont_eargs_list   { $2 }
@@ -89,14 +89,6 @@ eargs_list:
 cont_eargs_list:
   expr COMMA cont_eargs_list    { $1 :: $3 }
   | expr RBRACE        { [$1] }
-
-// eargs_list:
-//     expr                    { [$1] }
-//   | eargs_list expr { $2 :: $1 }
-
-// earg_opt:
-//   /* nothing */ { [] }
-//   | eargs_list %prec MORE { List.rev $1 }
 
 /* earg_index:
   ID LBRACKET expr RBRACKET { Binop($1, Index, $3) } *
@@ -175,6 +167,8 @@ expr:
   | FLIT	         { Fliteral($1)           }
   | BLIT             { BoolLit($1)            }
   | ID              { Id($1)                 }
+  | CHAR             { Char($1) }
+  | STRING            { String($1) }
   | expr PLUS   expr { Binop($1, Add,   $3)   }
   | expr MINUS  expr { Binop($1, Sub,   $3)   }
   | expr TIMES  expr { Binop($1, Mult,  $3)   }

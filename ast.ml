@@ -84,13 +84,31 @@ let string_of_idop = function
 let string_of_iduop = function
     Length -> "length"
 
+let string_of_path = function
+    Id(s) -> s
+    | String(s) -> "\"" ^ s ^ "\""
+    | _ ->  "Error: not a viable path type"
+
+(*let rec string_of_list = function
+  [] -> ""
+  | l -> string_of_cont_list l
+
+let rec string_of_cont_list = function
+  [] -> ""
+  | (fst :: []) -> string_of_expr fst
+  | (fst :: rest) -> string_of_expr fst ^ ", " ^string_of_cont_list rest*)
+
+(* string_of_expr e1 ^ "{" ^ string_of_list e2 ^ "}" *)
+
 let rec string_of_expr = function
     Literal(l) -> string_of_int l
   | Fliteral(l) -> l
   | BoolLit(true) -> "true"
   | BoolLit(false) -> "false"
   | Id(s) -> s
-  | Exec(e1, e2) -> "exec"
+  | Char(c) -> "'" ^ c ^ "'"
+  | String(s) -> "\"" ^ s ^ "\""
+  | Exec(e1, e2) -> string_of_path e1 ^ " " ^ "{" ^ (String.concat ", " (List.map string_of_expr e2)) ^ "}"
   | Binop(e1, o, e2) ->
       string_of_expr e1 ^ " " ^ string_of_op o ^ " " ^ string_of_expr e2
   | Idop(s, e, o) -> s ^ string_of_expr e ^ string_of_idop o
@@ -100,10 +118,10 @@ let rec string_of_expr = function
   | Assign(v, e) -> v ^ " = " ^ string_of_expr e
   | Call(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
-  | Char(c) -> c
-  | String(s) -> s
-  | List((fst, rest)) ->string_of_expr fst ^ ", " ^ string_of_expr rest
+  | List((fst, rest)) -> string_of_expr fst ^ ", " ^ string_of_expr rest
   | Noexpr -> ""
+
+
 
 let rec string_of_stmt = function
     Block(stmts) ->
@@ -142,9 +160,12 @@ let string_of_vdecl (t, id) = string_of_typ t ^ " " ^ id ^ ";\n"
   String.concat "" (List.map string_of_func_body fdecl.body) ^
   "}\n" *)
 
+let string_of_args args =
+  string_of_typ (fst args) ^ " " ^ (snd args)
+
 let string_of_fdecl fdecl =
   string_of_typ fdecl.typ ^ " " ^
-  fdecl.fname ^ "(" ^ String.concat ", " (List.map snd fdecl.formals) ^
+  fdecl.fname ^ "(" ^ String.concat ", " (List.map string_of_args fdecl.formals) ^
   ")\n{\n" ^
   String.concat "" (List.map string_of_vdecl fdecl.locals) ^
   String.concat "" (List.map string_of_stmt fdecl.body) ^
