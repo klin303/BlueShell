@@ -1,0 +1,16 @@
+/*
+    Test simple signed integer addition
+*/
+
+int a;
+a = -4;
+int b;
+b = -2;
+int c;
+c = b + a; 
+print(c);
+
+
+b = 2;
+c = b + a; 
+print(c);

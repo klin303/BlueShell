@@ -1,0 +1,5 @@
+/*
+    no semicolon 
+*/
+
+int fail
