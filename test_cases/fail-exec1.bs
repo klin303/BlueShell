@@ -3,4 +3,4 @@
 */
 
 exec fail;
-fail  = "aprogram" {["boo!", "no lists please!"]};
+fail  = "aprogram" ["boo!", "no lists please!"];

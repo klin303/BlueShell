@@ -142,9 +142,6 @@ let string_of_vdecl (t, id) = string_of_typ t ^ " " ^ id ^ ";\n"
   String.concat "" (List.map string_of_func_body fdecl.body) ^
   "}\n" *)
 
-(* let string_of_args arg =
-  string_of_typ (fst arg) ^ " " ^ (snd arg) *)
-
 let string_of_fdecl fdecl =
   string_of_typ fdecl.typ ^ " " ^
   fdecl.fname ^ "(" ^ String.concat ", " (List.map snd fdecl.formals) ^
