@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 /* Tests setting a variable to a exec binop expression */
 
+=======
+>>>>>>> ae1fcad (Revert "Revert "moar tests"")
 exec e2;
 exec e1;
 var = e1 * e2;

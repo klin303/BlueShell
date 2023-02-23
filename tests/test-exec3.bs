@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 /* Tests stand alone binop expression */
 
+=======
+>>>>>>> ae1fcad (Revert "Revert "moar tests"")
 exec e2;
 exec e1;
 e1 + e2;
