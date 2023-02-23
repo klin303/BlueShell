@@ -48,10 +48,9 @@ program:
   decls EOF { $1 }
 
 decls:
-   /* nothing */ { ([], [], [])               }
- | decls vdecl { let (vdecls, sdecls, fdecls) = $1 in (($2 :: vdecls), sdecls, fdecls) }
- | decls stmt { let (vdecls, sdecls, fdecls) = $1 in (vdecls, ($2:: sdecls), fdecls) }
- | decls fdecl { let (vdecls, sdecls, fdecls) = $1 in (vdecls, sdecls, ($2 :: fdecls)) }
+   /* nothing */ { ([], [])               }
+ | decls stmt { let (sdecls, fdecls) = $1 in (($2 :: sdecls), fdecls) }
+ | decls fdecl { let (sdecls, fdecls) = $1 in (sdecls, ($2 :: fdecls)) }
 
 typ:
     INT   { Int    }
@@ -107,12 +106,11 @@ list_length:
 
 /* Functions */
 fdecl:
-  typ ID LPAREN formals_opt RPAREN LBRACE vdecl_list stmt_list RBRACE
+  typ ID LPAREN formals_opt RPAREN LBRACE stmt_list RBRACE
      { { typ = $1;
 	fname = $2;
 	formals = List.rev $4;
-    locals = List.rev $7;
-	body = List.rev $8; } }
+	body = List.rev $7; } }
 
 formals_opt:
     /* nothing */ { [] }
@@ -122,12 +120,9 @@ formal_list:
     typ ID                   { [($1,$2)]     }
   | formal_list COMMA typ ID { ($3,$4) :: $1 }
 
-vdecl_list:
-    /* nothing */ { [] }
-  | vdecl_list vdecl { $2 :: $1 }
 
 vdecl:
-  typ ID SEMI { ($1, $2) }
+  typ ID { ($1, $2) }
 
 stmt_list:
      /* nothing */  { [] }
@@ -171,6 +166,7 @@ expr:
   | MINUS expr %prec NOT      { PreUnop(Neg, $2)          }
   | NOT expr                  { PreUnop(Not, $2)          }
   | ID ASSIGN expr            { Assign($1, $3)         }
+  | vdecl                     { Bind($1) }
   | expr ASSIGN expr          { Binop($1, ExprAssign, $3) }
   | ID LPAREN args_opt RPAREN { Call($1, $3)  }
   | LPAREN expr RPAREN        { $2                   }

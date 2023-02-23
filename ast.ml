@@ -34,6 +34,7 @@ type expr =
   | Assign of string * expr
   | Call of string * expr list
   | List of expr list
+  | Bind of bind
   | Noexpr
   | Index of expr * expr
 
@@ -51,11 +52,10 @@ type func_decl = {
     typ : typ;
     fname : string;
     formals : bind list;
-    locals : bind list;
     body : stmt list;
   }
 
-type program = bind list * stmt list * func_decl list
+type program = stmt list * func_decl list
 
 (* Pretty-printing functions *)
 
@@ -107,6 +107,19 @@ let rec string_of_cont_list = function
 
 (* string_of_expr e1 ^ "{" ^ string_of_list e2 ^ "}" *)
 
+let string_of_typ = function
+    Int -> "int"
+  | Bool -> "bool"
+  | Float -> "float"
+  | Void -> "void"
+  | Exec -> "exec"
+  | Char -> "char"
+  | String -> "string"
+  | List -> "list"
+  | Function -> "func"
+
+  let string_of_vdecl (t, id) = string_of_typ t ^ " " ^ id
+
 let rec string_of_expr = function
     Literal(l) -> string_of_int l
   | Fliteral(l) -> l
@@ -127,6 +140,7 @@ let rec string_of_expr = function
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
   | List(l) -> "[" ^ (String.concat ", " (List.map string_of_expr l)) ^ "]"
   | Index(list, index) -> string_of_expr list ^ "[" ^ string_of_expr index ^ "]"
+  | Bind(var) -> string_of_vdecl var
   | Noexpr -> ""
 
 let rec string_of_stmt = function
@@ -142,18 +156,9 @@ let rec string_of_stmt = function
       string_of_expr e3  ^ ") " ^ string_of_stmt s
   | While(e, s) -> "while (" ^ string_of_expr e ^ ") " ^ string_of_stmt s
 
-let string_of_typ = function
-    Int -> "int"
-  | Bool -> "bool"
-  | Float -> "float"
-  | Void -> "void"
-  | Exec -> "exec"
-  | Char -> "char"
-  | String -> "string"
-  | List -> "list"
-  | Function -> "func"
 
-let string_of_vdecl (t, id) = string_of_typ t ^ " " ^ id ^ ";\n"
+
+
 
 (* let string_of_func_body = function
     FuncBind(b) -> string_of_vdecl b
@@ -172,9 +177,8 @@ let string_of_args args =
 let string_of_fdecl fdecl =
   string_of_typ fdecl.typ ^ " " ^
   fdecl.fname ^ "(" ^ String.concat ", " (List.map string_of_args fdecl.formals) ^
-  ")\n{\n" ^
-  String.concat "\t" (List.map string_of_vdecl fdecl.locals) ^
-  String.concat "\t" (List.map string_of_stmt fdecl.body) ^
+  ")\n{\n" ^ "" ^
+  String.concat "" (List.map string_of_stmt fdecl.body) ^
   "}\n"
 
 (* let string_of_program_elem elem =
@@ -183,7 +187,6 @@ let string_of_fdecl fdecl =
     | stmt -> string_of_stmt elem
     | func_decl -> string_of_fdecl elem *)
 
-let string_of_program (vdecls, stmts, funcs) =
-  String.concat "" (List.rev (List.map string_of_vdecl vdecls)) ^ "\n" ^
+let string_of_program (stmts, funcs) =
   String.concat "" (List.rev (List.map string_of_stmt stmts)) ^ "\n" ^
   String.concat "\n" (List.rev (List.map string_of_fdecl funcs))
