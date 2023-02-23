@@ -6,12 +6,13 @@ Tina Ma (tina.ma@tufts.edu)
 Mary-Joy Sidhom (mary-joy.sidhom@tufts.edu)}
 
 *** Compiling our Compiler ***
-
+make toplevel.native
 
 *** Executing our Compiler ***
+./toplevel.native < {input_filename}
 
 *** Running our Test Script ***
+./testall.sh
 
 *** Remaining Syntax to Add ***
-- Allowing variable declaration and assignment in the same line/ allowing
-  variable declarations interweaved with statements in function body
+none (for now)
