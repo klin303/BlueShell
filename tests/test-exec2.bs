@@ -1,3 +1,5 @@
-/* Tests empty arguments */
-
-exec e = path {};
+/*
+    Test simple executable syntax
+*/
+exec e;
+$e
