@@ -9,7 +9,7 @@
 %token AND OR NOT /* logical operator */
 %token GT LT EQ GEQ LEQ NEQ /* comparisons */
 %token IF ELSE WHILE FOR RETURN /* statements */
-%token INT BOOL FLOAT VOID EXEC CHR STR LIST /* types */
+%token INT BOOL FLOAT VOID EXEC CHR STR LIST FUNCTION /* types */
 %token <int> LITERAL
 %token <bool> BLIT
 %token <string> ID FLIT CHAR STRING
@@ -62,7 +62,7 @@ typ:
   | CHR  { Char }
   | STR   { String }
   | LIST     { List }
-  // | fdecl  { Function }
+  | FUNCTION  { Function }
 
 /* Executables */
 exec:
@@ -97,11 +97,11 @@ cont_eargs_list:
 /* Lists */
 list:
   LBRACKET cont_list   { $2 }
-  | LBRACKET RBRACKET  { Noexpr }
+  | LBRACKET RBRACKET  { EmptyList }
 
 cont_list:
   expr COMMA cont_list    { List(($1, $3)) }
-  | expr RBRACKET         { List(($1, Noexpr)) }
+  | expr RBRACKET         { List(($1, EmptyList)) }
 
 index:
   ID LBRACKET expr RBRACKET { Idop($1, $3, Index) }

@@ -31,6 +31,7 @@ type expr =
   | Assign of string * expr
   | Call of string * expr list
   | List of expr * expr
+  | EmptyList
   | Noexpr
 
 type stmt =
@@ -118,11 +119,10 @@ let rec string_of_expr = function
   | Assign(v, e) -> v ^ " = " ^ string_of_expr e
   | Call(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
-  | List((fst, Noexpr)) -> string_of_expr fst
+  | EmptyList -> "[]"
+  | List((fst, EmptyList)) -> string_of_expr fst ^ ""
   | List((fst, rest)) -> string_of_expr fst ^ ", " ^ string_of_expr rest
   | Noexpr -> ""
-
-
 
 let rec string_of_stmt = function
     Block(stmts) ->
@@ -179,6 +179,6 @@ let string_of_fdecl fdecl =
     | func_decl -> string_of_fdecl elem *)
 
 let string_of_program (vdecls, stmts, funcs) =
-  String.concat "" (List.map string_of_vdecl vdecls) ^ "\n" ^
-  String.concat "" (List.map string_of_stmt stmts) ^ "\n" ^
-  String.concat "\n" (List.map string_of_fdecl funcs)
+  String.concat "" (List.rev (List.map string_of_vdecl vdecls)) ^ "\n" ^
+  String.concat "" (List.rev (List.map string_of_stmt stmts)) ^ "\n" ^
+  String.concat "\n" (List.rev (List.map string_of_fdecl funcs))
