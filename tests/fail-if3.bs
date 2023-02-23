@@ -1,0 +1,4 @@
+bool b;
+if (true) {
+    
+}
