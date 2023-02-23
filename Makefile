@@ -26,20 +26,20 @@ toplevel.native : parser.mly scanner.mll toplevel.ml
 .PHONY : clean
 clean :
 	ocamlbuild -clean
-	rm -rf testall.log ocamlllvm *.diff printbig.o
+	rm -rf testall.log ocamlllvm *.diff printbig.o *.tsout
 
 # can add a test for one file here
 
 # printbig : printbig.c
 # 	cc -o printbig -DBUILD_TEST printbig.c
 
-# Building the ziploc
+# Building the ziploc really funn.y 
 
 TESTS = \
-	lists1 list2 int1 function1 exec1
+	elseif1 exec1 function1 if-elses1 int1 list2 lists1
 
 FAILS = \
-	assign1 cons1 exec1 function1 int1
+	cons1 function1 noend badif1 badeq1
 
 TESTFILES = $(TESTS:%=test-%.bs) $(TESTS:%=test-%.out) \
 	    $(FAILS:%=fail-%.bs) $(FAILS:%=fail-%.err)
@@ -50,5 +50,8 @@ ZIPFILES = ast.ml Makefile toplevel.ml parser.mly README scanner.mll \
 bostonbitpackers.zip : $(ZIPFILES)
 	zip bostonbitpackers.zip $(ZIPFILES)
 
-print_tests: 
-	echo $(TESTS) &&  echo $(FAILS)
+print_succtests: 
+	@echo $(TESTS)
+
+print_failtests:
+	@echo $(FAILS)

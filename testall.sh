@@ -7,7 +7,52 @@
 # expected error. For examples of both, see the MicroC testsuite and testing
 # script.
 
-echo "UM THIS ISNT DONE YET"
 
-tests=$(find test_cases -name "test-*.bs")
-fails=$(find test_cases -name "fail-*.bs")
+# 
+# Both succ and fail test names need to be added to the Makefile 
+# for this list to be updated.
+# The name is in the filename as "test-<filename>.bs"
+#
+tests=$(Make print_succtests)
+fail_tests=$(Make print_failtests)
+
+
+
+echo "Making top level:"
+make clean
+make toplevel.native 
+
+
+for test in $tests 
+do 
+    echo "Running test $test........\n"
+    file_name="tests/test-${test}.bs"
+    gold_standard="tests/test-${test}.gst"
+    ./toplevel.native < $file_name > "$test.tsout"
+    diff "$test.tsout" $gold_standard > $test.diff 
+    if [ -s $test.diff ]; then
+        echo "ERROR: AST FOR ${test} DOES NOT MATCH GSAST\n\n"
+    fi 
+
+done 
+
+echo "\n"
+echo "\n"
+echo "\n"
+
+
+# cringe fail test compilation
+for ftest in $fail_tests 
+do 
+    echo "Running failure test $ftest............\n"
+    file_name="tests/fail-${ftest}.bs"
+    fail_standard="tests/fail-${ftest}.gst"
+    ./toplevel.native < $file_name 2> "$ftest.tsout"
+    diff "$ftest.tsout" $fail_standard > $ftest.diff 
+    if [ -s $ftest.diff ]; then
+        echo "ERROR: OUTPUT FOR ${ftest} DOES NOT MATCH EXPECTED OUTPUT \n\n "
+    fi 
+
+done 
+
+# bye

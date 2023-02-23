@@ -1,0 +1,6 @@
+/*
+    nothing in int statement
+*/
+if () {
+
+}
