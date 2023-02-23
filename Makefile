@@ -1,40 +1,32 @@
 
 # "make all" builds the executable 
-
 .PHONY : all
 all : toplevel.native
 
-# "make test" Compiles everything and runs the regression tests
-
+# "make test" compiles everything and runs the regression tests
 .PHONY : test
 test : all testall.sh
 	./testall.sh
 
-# "make blueshell.native" compiles the compiler
-#
-# The _tags file controls the operation of ocamlbuild, e.g., by including
-# packages, enabling warnings -- LLVM STUFF TO REMOVE?
-#
-# See https://github.com/ocaml/ocamlbuild/blob/master/manual/manual.adoc
+# 'make gold' compiles everything and re-runs all the tests to produce new 
+# gold standards. DO NOT RUN UNLESS YOU WANT ALL GOLD STANDARDS TO BE REMADE
+.PHONY : gold
+gold : all make-gsts.sh
+	./make-gsts.sh
 
+# "make toplevel.native" builds the scanner, parser, and toplevel for testing
 toplevel.native :parser.mly scanner.mll toplevel.ml 
 	opam exec -- \
 	ocamlbuild -use-ocamlfind toplevel.native
 
-# "make clean" removes all generated files
 
+# "make clean" removes all generated files
 .PHONY : clean
 clean :
 	ocamlbuild -clean
-	rm -rf testall.log ocamlllvm *.diff printbig.o *.tsout
+	rm -rf testall.log ocamlllvm *.diff *.tsout
 
-# can add a test for one file here
-
-# printbig : printbig.c
-# 	cc -o printbig -DBUILD_TEST printbig.c
-
-# Building the ziploc really funn.y 
-
+# Filling the ziploc
 TESTS = \
 	elseif1 exec1 function1 if-elses1 int1 list2 lists1
 
@@ -47,11 +39,14 @@ TESTFILES = $(TESTS:%=test-%.bs) $(TESTS:%=test-%.out) \
 ZIPFILES = ast.ml Makefile toplevel.ml parser.mly README scanner.mll \
 		testall.sh $(TESTFILES:%=tests/%) 
 
+# zips files and tests together
 bostonbitpackers.zip : $(ZIPFILES)
 	zip bostonbitpackers.zip $(ZIPFILES)
 
+# prints the list of tests which should pass
 print_succtests: 
 	@echo $(TESTS)
 
+# prints the list of tests which should fail
 print_failtests:
 	@echo $(FAILS)
