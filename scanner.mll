@@ -51,6 +51,7 @@ rule tokenize = parse
 | "list"    { LIST }
 | "true"    { BLIT(true) }
 | "false"   { BLIT(false) }
+| "function" { FUNCTION }
 | "|"       { PIPE }      (* executable operators *)
 | "./"      { RUN }
 | "?"       { EXITCODE }
@@ -69,9 +70,11 @@ rule tokenize = parse
 and multiline_comment = parse
   "*/" { tokenize lexbuf }
   | _ { multiline_comment lexbuf }
+  | eof { raise (Failure("did not close multiline comment")) }
 
 and singleline_comment = parse
   "\n" { tokenize lexbuf }
+  | eof { EOF }
   | _ { singleline_comment lexbuf }
 
 and character_of = parse
