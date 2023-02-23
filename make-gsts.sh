@@ -6,15 +6,13 @@
 
 # It creates new gold standards, both errors and ASTs for our compiler. 
 
-# 
-=======
 
+=======
 # if [[ -e $# 0 ]]; then 
 #     echo "no args"
 # elif [[ -e $# 1 ]]; then 
 #     echo $1
 # fi 
-
 
 tests=$(Make print_succtests)
 fail_tests=$(Make print_failtests)

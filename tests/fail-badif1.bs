@@ -1,11 +1,8 @@
 /*
-    nothing in int statement
+    nothing in inf statement
 */
 if () {
-<<<<<<< HEAD
-
-=======
     int a;
     a = 3;
->>>>>>> main
+
 }
