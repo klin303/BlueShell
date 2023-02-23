@@ -36,11 +36,11 @@ FAILS = \
 	assign1 cons1 function2 noend badif1 badeq1 char1 int1 int2 program types1 \
 	string1
 
-TESTFILES = $(TESTS:%=test-%.bs) $(TESTS:%=test-%.out) \
-	    $(FAILS:%=fail-%.bs) $(FAILS:%=fail-%.err)
+TESTFILES = $(TESTS:%=test-%.bs) $(TESTS:%=test-%.gst) \
+	    $(FAILS:%=fail-%.bs) $(FAILS:%=fail-%.gst)
 
 ZIPFILES = ast.ml Makefile toplevel.ml parser.mly README scanner.mll \
-		testall.sh $(TESTFILES:%=tests/%) 
+		testall.sh make-gsts.sh $(TESTFILES:%=tests/%) 
 
 # zips files and tests together
 bostonbitpackers.zip : $(ZIPFILES)
