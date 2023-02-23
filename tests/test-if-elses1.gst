@@ -1,5 +1,4 @@
 
-
 int foo(int x)
 {
 if (a)

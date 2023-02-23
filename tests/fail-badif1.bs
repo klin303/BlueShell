@@ -1,5 +1,5 @@
 /*
-    nothing in inf statement
+    nothing in if statement
 */
 if () {
     int a;

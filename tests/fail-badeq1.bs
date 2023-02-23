@@ -1,1 +1,1 @@
-int help == 3;
+int help !== 3;

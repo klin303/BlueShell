@@ -2,4 +2,4 @@
     Test simple executable syntax
 */
 exec e;
-$e
+$e;

@@ -3,7 +3,7 @@ BlueShell
 Kenneth Lin (kenneth.lin@tufts.edu)
 Alan Luc (alan.luc@tufts.edu)
 Tina Ma (tina.ma@tufts.edu)
-Mary-Joy Sidhom (mary-joy.sidhom@tufts.edu)}
+Mary-Joy Sidhom (mary-joy.sidhom@tufts.edu)
 
 *** Compiling our Compiler ***
 make toplevel.native
@@ -13,6 +13,8 @@ make toplevel.native
 
 *** Running our Test Script ***
 ./testall.sh
+> Running this script creates auxiliary .out and .diff files 
+for each test. Running `make clean_tests` will remove them. 
 
 *** Remaining Syntax to Add ***
 none (for now)

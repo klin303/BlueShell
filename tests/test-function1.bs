@@ -1,5 +1,5 @@
 /*
-    Creates a function that adds two 
+    Creates a function that adds two ints 
 */
 
 int add(int a, int b) {

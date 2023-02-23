@@ -22,7 +22,7 @@ if [ "$#" -eq 0 ]; then
         file_name="${test_dir}test-${test}.bs"
         # echo $gold_standard
         if [ ! -f $file_name ]; then 
-            echo "****ALERT***** Test $ftest doesn't exist\n\n\n\n"
+            echo "****ALERT***** Test $test doesn't exist\n\n\n\n"
             continue;
         fi
         gold_standard="${test_dir}test-${test}.gst"

@@ -1,4 +1,0 @@
-bool b;
-if (true) {
-    
-}

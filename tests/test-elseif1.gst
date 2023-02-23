@@ -1,5 +1,4 @@
 
-
 int foo()
 {
 if (x)

@@ -28,12 +28,13 @@ clean :
 
 # Filling the ziploc
 TESTS = \
-	elseif1 exec1 if-elses1 int1 intliteral1 list2 lists1 types1 vdecl1 string1 string2 \
-	program indexing1 hofs1 function2 function3 function1 float1 exec4 exec2 emptyfile \
-	char1 bool1
+	arith1 bool1 char1 elseif1 emptyfile exec1 exec2 exec3 exec4 exec5 float1 \
+	function1 function2 function3 function4 function5 hofs1 if-elses1 indexing1 \
+	int1 int2 lists1 program string1 string2 types1 vdecl1
 
 FAILS = \
-	cons1 function1 noend badif1 badeq1 char1 cons2 
+	assign1 cons1 function2 noend badif1 badeq1 char1 int1 int2 program types1 \
+	string1
 
 TESTFILES = $(TESTS:%=test-%.bs) $(TESTS:%=test-%.out) \
 	    $(FAILS:%=fail-%.bs) $(FAILS:%=fail-%.err)
@@ -52,3 +53,7 @@ print_succtests:
 # prints the list of tests which should fail
 print_failtests:
 	@echo $(FAILS)
+
+#removes .out and .diff files produced by the testing script
+clean_tests:
+	rm -rf *.diff *.tsout	
