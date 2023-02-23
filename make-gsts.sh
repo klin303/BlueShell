@@ -11,6 +11,8 @@
 # elif [[ -e $# 1 ]]; then 
 #     echo $1
 # fi 
+tests=$(Make print_succtests)
+fail_tests=$(Make print_failtests)
 test_dir="tests/"
 
 if [ "$#" -eq 0 ]; then
@@ -73,8 +75,6 @@ else
     exit
 fi
 
-# tests=$(Make print_succtests)
-# fail_tests=$(Make print_failtests)
 
 # echo "Making top level:"
 # make clean
