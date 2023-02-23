@@ -35,10 +35,10 @@ clean :
 
 # Building the ziploc
 
-TESTS = 
+TESTS = \
 	lists1 list2 int1 function1 exec1
 
-FAILS = 
+FAILS = \
 	assign1 cons1 exec1 function1 int1
 
 TESTFILES = $(TESTS:%=test-%.bs) $(TESTS:%=test-%.out) \

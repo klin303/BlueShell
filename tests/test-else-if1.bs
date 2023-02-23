@@ -1,0 +1,14 @@
+/*
+    Tests else if
+*/
+int foo() {
+    if (x) {
+        return x;
+    }
+    else if (!y) {
+        return x - 1;
+    }
+    else if (not y) {
+        return y;
+    }
+}

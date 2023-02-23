@@ -3,12 +3,14 @@
     Then creates a list consisting of the two variables, a string, and a function.
 */
 
+int four;
+four = 4;
+int hello;
+hello = "hello";
 
-int four = 4;
-int hello = "hello";
 void helloWorld() {
     print(helloWorld);
 }
 
-List l;
+list l;
 l  = [hello, "world", four, true, helloWorld];

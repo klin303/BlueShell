@@ -3,4 +3,6 @@
 */
 
 exec fail;
-fail  = "aprogram" ["boo!", "no lists please!"];
+int foo() {
+fail  = "aprogram" {["boo!", "no lists please!"]};
+}
