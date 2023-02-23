@@ -25,7 +25,7 @@
 %nonassoc ID
 %nonassoc NOELSE
 %left EXITCODE
-%right PATH RUN
+%left PATH RUN
 %left PIPE
 %nonassoc ELSE
 %right ASSIGN
@@ -67,16 +67,10 @@ typ:
 /* Executables */
 exec:
   simple_exec       { $1 }
-//   | complex_exec   { $1 }
 
 
 simple_exec:
   path eargs_list        { Exec($1, $2) }
-
-// complex_exec:
-//   exec PLUS exec     { Binop($1, Add, $3) }
-//   | exec TIMES exec  { Binop($1, Mult, $3) }
-//   | exec PIPE exec  { Binop($1, Pipe, $3) }
 
 
 path:
@@ -91,26 +85,25 @@ cont_eargs_list:
   expr COMMA cont_eargs_list    { $1 :: $3 }
   | expr RBRACE        { [$1] }
 
-/* earg_index:
-  ID LBRACKET expr RBRACKET { Binop($1, Index, $3) } *
 
 /* Lists */
+
 list:
-  LBRACKET cont_list   { $2 }
-  | LBRACKET RBRACKET  { EmptyList }
+  LBRACKET cont_list { List($2) }
+  | LBRACKET RBRACKET { List([]) }
 
 cont_list:
-  expr COMMA cont_list    { List(($1, $3)) }
-  | expr RBRACKET         { List(($1, EmptyList)) }
+  expr COMMA cont_list    { $1 :: $3 }
+  | expr RBRACKET      { [$1] }
 
 index:
-  ID LBRACKET expr RBRACKET { Idop($1, $3, Index) }
+  expr LBRACKET expr RBRACKET { Index($1, $3) }
 
 list_cons:
-  expr CONS ID { Idop($3, $1, Cons) }
+  expr CONS expr { Binop($1, Cons, $3) }
 
 list_length:
-  LEN ID { Iduop($2, Length) }
+  LEN expr { PreUnop(Length, $2) }
 
 /* Functions */
 fdecl:
@@ -135,15 +128,6 @@ vdecl_list:
 
 vdecl:
   typ ID SEMI { ($1, $2) }
-
-
-// body:
-//   vdecl { $1 }
-//   | stmt { $1 }
-
-// body_list:
-//   /* nothing */ { [] }
-//   | body_list body { $2 :: $1 }
 
 stmt_list:
      /* nothing */  { [] }
@@ -187,6 +171,7 @@ expr:
   | MINUS expr %prec NOT      { PreUnop(Neg, $2)          }
   | NOT expr                  { PreUnop(Not, $2)          }
   | ID ASSIGN expr            { Assign($1, $3)         }
+  | expr ASSIGN expr          { Binop($1, ExprAssign, $3) }
   | ID LPAREN args_opt RPAREN { Call($1, $3)  }
   | LPAREN expr RPAREN        { $2                   }
   | expr EXITCODE             { PostUnop($1, ExitCode) }

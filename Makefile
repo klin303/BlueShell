@@ -17,7 +17,7 @@ test : all testall.sh
 #
 # See https://github.com/ocaml/ocamlbuild/blob/master/manual/manual.adoc
 
-toplevel.native : parser.mly scanner.mll toplevel.ml 
+toplevel.native :parser.mly scanner.mll toplevel.ml 
 	opam exec -- \
 	ocamlbuild -use-ocamlfind toplevel.native
 

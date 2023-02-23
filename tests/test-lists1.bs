@@ -5,6 +5,7 @@
 
 int four;
 four = 4;
+
 int hello;
 hello = "hello";
 
@@ -13,4 +14,6 @@ void helloWorld() {
 }
 
 list l;
-l  = [hello, "world", four, true, helloWorld];
+l = [];
+four :: l;
+l  = [hello, "world", four, true, helloWorld] ;

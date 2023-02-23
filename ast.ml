@@ -3,15 +3,18 @@
 (* Kenny Lin, Alan Luc, Tina Ma, Mary-Joy Sidhom *)
 
 type op = Add | Sub | Mult | Div | Equal | Neq | Less | Leq | Greater | Geq |
-          And | Or | Pipe
+          And | Or | Pipe  | Cons | ExprAssign
 
-type idop = Index | Cons
+(* type idop = Index | Cons *)
 
-type iduop = Length
+(* type iduop = Length *)
 
-type uop = Neg | Not | ExitCode | Run | Path
+type index = Index
+
+type uop = Neg | Not | ExitCode | Run | Path | Length
 
 type typ = Int | Bool | Float | Void | Exec | Char | String | List | Function
+
 
 type bind = typ * string
 
@@ -24,15 +27,15 @@ type expr =
   | String of string
   | Exec of expr * expr list
   | Binop of expr * op * expr
-  | Idop of string * expr * idop
-  | Iduop of string * iduop
+  (* | Idop of string * expr * idop *)
+  (* | Iduop of string * iduop *)
   | PreUnop of uop * expr
   | PostUnop of expr * uop
   | Assign of string * expr
   | Call of string * expr list
-  | List of expr * expr
-  | EmptyList
+  | List of expr list
   | Noexpr
+  | Index of expr * expr
 
 type stmt =
     Block of stmt list
@@ -70,6 +73,8 @@ let string_of_op = function
   | And -> "&&"
   | Or -> "||"
   | Pipe -> "|"
+  | Cons -> "::"
+  | ExprAssign -> "="
 
 let string_of_uop = function
     Neg -> "-"
@@ -77,13 +82,14 @@ let string_of_uop = function
   | Run -> "./"
   | Path -> "$"
   | Not -> "!"
+  | Length -> "len "
 
-let string_of_idop = function
+(* let string_of_idop = function
     Index -> "index"
-  | Cons -> "::"
+  | Cons -> "::" *)
 
-let string_of_iduop = function
-    Length -> "length"
+(* let string_of_iduop = function
+    Length -> "length" *)
 
 let string_of_path = function
     Id(s) -> s
@@ -112,16 +118,15 @@ let rec string_of_expr = function
   | Exec(e1, e2) -> string_of_path e1 ^ " " ^ "{" ^ (String.concat ", " (List.map string_of_expr e2)) ^ "}"
   | Binop(e1, o, e2) ->
       string_of_expr e1 ^ " " ^ string_of_op o ^ " " ^ string_of_expr e2
-  | Idop(s, e, o) -> s ^ string_of_expr e ^ string_of_idop o
-  | Iduop(s, o) -> s ^ string_of_iduop o
+  (* | Idop(s, e, o) -> s ^ string_of_expr e ^ string_of_idop o *)
+  (* | Iduop(s, o) -> s ^ string_of_iduop o *)
   | PreUnop(o, e) -> string_of_uop o ^ string_of_expr e
   | PostUnop(e, o) -> string_of_expr e ^ string_of_uop o
   | Assign(v, e) -> v ^ " = " ^ string_of_expr e
   | Call(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
-  | EmptyList -> "[]"
-  | List((fst, EmptyList)) -> string_of_expr fst
-  | List((fst, rest)) -> string_of_expr fst ^ ", " ^ string_of_expr rest
+  | List(l) -> "[" ^ (String.concat ", " (List.map string_of_expr l)) ^ "]"
+  | Index(list, index) -> string_of_expr list ^ "[" ^ string_of_expr index ^ "]"
   | Noexpr -> ""
 
 let rec string_of_stmt = function
@@ -168,8 +173,8 @@ let string_of_fdecl fdecl =
   string_of_typ fdecl.typ ^ " " ^
   fdecl.fname ^ "(" ^ String.concat ", " (List.map string_of_args fdecl.formals) ^
   ")\n{\n" ^
-  String.concat "" (List.map string_of_vdecl fdecl.locals) ^
-  String.concat "" (List.map string_of_stmt fdecl.body) ^
+  String.concat "\t" (List.map string_of_vdecl fdecl.locals) ^
+  String.concat "\t" (List.map string_of_stmt fdecl.body) ^
   "}\n"
 
 (* let string_of_program_elem elem =
