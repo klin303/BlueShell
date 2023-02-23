@@ -28,10 +28,12 @@ clean :
 
 # Filling the ziploc
 TESTS = \
-	elseif1 exec1 function1 if-elses1 int1 list2 lists1
+	elseif1 exec1 if-elses1 int1 intliteral1 list2 lists1 types1 vdecl1 string1 string2 \
+	program indexing1 hofs1 function2 function3 function1 float1 exec4 exec2 emptyfile \
+	char1 bool1
 
 FAILS = \
-	cons1 function1 noend badif1 badeq1
+	cons1 function1 noend badif1 badeq1 char1 cons2 
 
 TESTFILES = $(TESTS:%=test-%.bs) $(TESTS:%=test-%.out) \
 	    $(FAILS:%=fail-%.bs) $(FAILS:%=fail-%.err)

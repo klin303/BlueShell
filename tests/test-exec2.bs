@@ -1,10 +1,5 @@
-<<<<<<< HEAD
 /*
     Test simple executable syntax
 */
 exec e;
 $e
-=======
-exec e;
-$e
->>>>>>> ae1fcad (Revert "Revert "moar tests"")
