@@ -1,0 +1,7 @@
+/*
+    nothing in int statement
+*/
+if () {
+    int a;
+    a = 3;
+}
