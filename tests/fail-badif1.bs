@@ -1,0 +1,11 @@
+/*
+    nothing in int statement
+*/
+if () {
+<<<<<<< HEAD
+
+=======
+    int a;
+    a = 3;
+>>>>>>> main
+}
