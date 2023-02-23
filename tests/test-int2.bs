@@ -1,0 +1,5 @@
+/* test funky ints - like double minus */
+
+1--5;
+--5;
+---5;

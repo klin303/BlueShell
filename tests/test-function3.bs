@@ -1,0 +1,11 @@
+/* Type in function declaration */
+
+int foo(int x) {
+    return x;
+}
+
+if (true) {
+    x = y;
+} else {
+    y = x + foo(x);
+}

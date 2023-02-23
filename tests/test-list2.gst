@@ -1,5 +1,8 @@
 list one;
 
-print(one0index);
-one = 1, "haha";
+one = [1, "haha"];
+print(one[0]);
+one = 1 :: one;
+x = len l;
+1 :: one;
 

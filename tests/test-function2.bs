@@ -1,0 +1,3 @@
+/* Test empty function */
+
+int foo() {}

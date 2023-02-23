@@ -5,7 +5,7 @@
 # *****DO NOT RUN THIS SCRIPT***** unless you want to create new gold standard ASTs
 
 # It creates new gold standards, both errors and ASTs for our compiler. 
-<<<<<<< HEAD
+
 # 
 =======
 
@@ -14,7 +14,7 @@
 # elif [[ -e $# 1 ]]; then 
 #     echo $1
 # fi 
->>>>>>> main
+
 
 tests=$(Make print_succtests)
 fail_tests=$(Make print_failtests)

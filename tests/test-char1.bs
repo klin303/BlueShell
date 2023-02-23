@@ -1,0 +1,7 @@
+/* testing char literals */
+
+'a';
+'\n';
+'\\';
+'\r';
+'\t';

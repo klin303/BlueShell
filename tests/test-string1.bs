@@ -1,0 +1,5 @@
+/* testing basic strings */
+
+"string";
+"a";
+"hello_world";

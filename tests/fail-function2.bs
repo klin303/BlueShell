@@ -1,0 +1,4 @@
+/* No curly brace at the end of function */
+
+int foo() {
+    return 1;

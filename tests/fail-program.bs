@@ -1,0 +1,14 @@
+/* No type in front of function */
+
+int foo(int x) {
+    return x;
+}
+
+if (true) {
+    x = y;
+} else {
+    y = x + foo(x);
+}
+foo(int y) {
+    return 1;
+}

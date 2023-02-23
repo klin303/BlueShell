@@ -1,2 +1,5 @@
-int a;
-a = "hello";
+/* testing int literals */
+
+1;
+10;
+-10;

@@ -1,0 +1,10 @@
+/* testing more complex strings */
+
+"hello\n";
+
+"good\tbye";
+
+"my\\name\\is\\Tina";
+
+"I \r made the second half longer.!#$(W))#$&@(){}S}[]";
+

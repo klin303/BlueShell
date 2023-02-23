@@ -1,10 +1,12 @@
-list l;
-int hello;
 int four;
+int hello;
+list l;
 
-l = hello, "world", four, true, helloWorld;
-hello = "hello";
 four = 4;
+hello = "hello";
+l = [];
+four :: l;
+l = [hello, "world", four, true, helloWorld];
 
 void helloWorld()
 {

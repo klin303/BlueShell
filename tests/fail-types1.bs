@@ -1,0 +1,2 @@
+/* Fails on nonexistent type */
+randomtype t = 12;

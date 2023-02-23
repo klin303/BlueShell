@@ -1,9 +1,10 @@
 /*
-    Creates and executes an executable with no arguments
+    Tests the functionality of the executable type.
 */
 
 exec e1;
 exec e;
+exec e2 = e1 | e;
 e1 = "program" {[a, b, c], "hello", 24};
 $e1 = "string";
 exit_code = e?;

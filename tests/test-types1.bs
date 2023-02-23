@@ -1,0 +1,12 @@
+/* Tests types and assignments on all types */
+
+int i = 2;
+bool b = true;
+float f = 12.23;
+void v = 23;
+exec e = a {a,b,c};
+char c = 'a';
+string s = "hello world\n";
+list l = [1, 'a', 2.3];
+int foo() { return 1; } 
+function f = foo;

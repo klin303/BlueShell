@@ -1,0 +1,4 @@
+/* testing boolean literals */
+
+true;
+false;
