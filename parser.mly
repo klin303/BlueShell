@@ -130,11 +130,12 @@ formal_list:
   | formal_list COMMA typ ID { ($3,$4) :: $1 }
 
 vdecl_list:
-    /* nothing */    { [] }
+    /* nothing */ { [] }
   | vdecl_list vdecl { $2 :: $1 }
 
 vdecl:
-   typ ID SEMI { ($1, $2) }
+  typ ID SEMI { ($1, $2) }
+
 
 // body:
 //   vdecl { $1 }
@@ -145,7 +146,7 @@ vdecl:
 //   | body_list body { $2 :: $1 }
 
 stmt_list:
-    %prec EMPTYSTMTLIST /* nothing */  { [] }
+     /* nothing */  { [] }
   | stmt_list stmt { $2 :: $1 }
 
 stmt:

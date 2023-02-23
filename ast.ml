@@ -120,7 +120,7 @@ let rec string_of_expr = function
   | Call(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
   | EmptyList -> "[]"
-  | List((fst, EmptyList)) -> string_of_expr fst ^ ""
+  | List((fst, EmptyList)) -> string_of_expr fst
   | List((fst, rest)) -> string_of_expr fst ^ ", " ^ string_of_expr rest
   | Noexpr -> ""
 
