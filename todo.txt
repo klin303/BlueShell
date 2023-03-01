@@ -1,6 +1,8 @@
-style
-more tests
-update testing script
-COMMENTS - all files 
-readme
-add test names to makefile for zip
+add mod?
+casting (float) (int) etc. 
+FIX THE FREAKING FIRST-CLASS FUNCTIONS 
+- add either static or dynamic type checking 
+
+Nice to haves:
+- remove from head of list 
+- remove argument from executable 
