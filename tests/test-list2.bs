@@ -1,4 +1,4 @@
-list one;
+list of int one;
 one = [1, "haha"];
 print(one[0]);
 one = 1 :: one ;

@@ -13,7 +13,7 @@ void helloWorld() {
     print(helloWorld);
 }
 
-list l;
+list of string l;
 l = [];
 four :: l;
 l  = [hello, "world", four, true, helloWorld] ;

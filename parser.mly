@@ -4,7 +4,7 @@
 
 %{ open Ast %}
 
-%token SEMI LPAREN RPAREN LBRACE RBRACE COMMA LBRACKET RBRACKET /* structural tokens */
+%token SEMI LPAREN RPAREN LBRACE RBRACE COMMA LBRACKET RBRACKET AMPERSAND LANGLE RANGLE OF /* structural tokens */
 %token PLUS MINUS TIMES DIVIDE ASSIGN /* type operators */
 %token AND OR NOT /* logical operators */
 %token GT LT EQ GEQ LEQ NEQ /* comparisons */
@@ -14,7 +14,7 @@
 %token <bool> BLIT
 %token <string> ID FLIT CHAR STRING
 %token EOF
-%token PIPE RUN EXITCODE PATH /* executable operators */
+%token PIPE RUN EXITCODE PATH WITHARGS /* executable operators */
 %token CONS LEN /* list operators */
 
 %start program
@@ -58,27 +58,26 @@ typ:
   | EXEC            { Exec     }
   | CHR             { Char     }
   | STR             { String   }
-  | LIST            { List     }
+  | LIST OF typ     { List_type($3) }
   | FUNCTION        { Function }
 
 /* Executables */
 exec:
-  simple_exec       { $1 }
+  LANGLE expr WITHARGS expr RANGLE  { Exec($2, $4) } 
+| LANGLE expr RANGLE  { Exec($2, List([])) } 
 
-simple_exec:
-  path eargs_list   { Exec($1, $2) }
 
-path:
-  ID                { Id($1) }
-  | STRING          { String($1) }
+// path:
+//   ID                { Id($1) }
+//   | STRING          { String($1) }
 
-eargs_list:
-  LBRACE cont_eargs_list  { $2 }
-  | LBRACE RBRACE         { [] }
+// eargs_list:
+//   LBRACE cont_eargs_list  { $2 }
+//   | LBRACE RBRACE         { [] }
 
-cont_eargs_list:
-  expr COMMA cont_eargs_list    { $1 :: $3 }
-  | expr RBRACE                 { [$1] }
+// cont_eargs_list:
+//   expr COMMA cont_eargs_list    { $1 :: $3 }
+//   | expr RBRACE                 { [$1] }
 
 /* Lists */
 list:

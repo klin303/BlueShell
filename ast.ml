@@ -13,7 +13,7 @@ type index = Index
 type uop = Neg | Not | ExitCode | Run | Path | Length
 
 (* types *)
-type typ = Int | Bool | Float | Void | Exec | Char | String | List | Function
+type typ = Int | Bool | Float | Void | Exec | Char | String | List_type of typ | Function
 
 (* bind sets a variable name to a type *)
 type bind = typ * string
@@ -26,7 +26,7 @@ type expr =
   | Id of string
   | Char of string
   | String of string
-  | Exec of expr * expr list
+  | Exec of expr * expr
   | Index of expr * expr
   | Binop of expr * op * expr
   | PreUnop of uop * expr
@@ -89,7 +89,7 @@ let string_of_path = function
   | String(s) ->  "\"" ^ s ^ "\""
   | _ ->          "Error: not a viable path type"
 
-let string_of_typ = function
+let rec string_of_typ = function
     Int ->        "int"
   | Bool ->       "bool"
   | Float ->      "float"
@@ -97,7 +97,7 @@ let string_of_typ = function
   | Exec ->       "exec"
   | Char ->       "char"
   | String ->     "string"
-  | List ->       "list"
+  | List_type(t) ->    "list of " ^ string_of_typ t
   | Function ->   "func"
 
 let string_of_vdecl (t, id) = string_of_typ t ^ " " ^ id
@@ -111,7 +111,7 @@ let rec string_of_expr = function
   | Char(c) ->        "'" ^ c ^ "'"
   | String(s) ->      "\"" ^ s ^ "\""
   | Exec(e1, e2) ->   
-      string_of_path e1 ^ " " ^ "{" ^ (String.concat ", " (List.map string_of_expr e2)) ^ "}"
+      "<" ^ string_of_expr e1 ^ " withargs " ^ string_of_expr e2 ^ ">"
   | Binop(e1, o, e2) ->
       string_of_expr e1 ^ " " ^ string_of_op o ^ " " ^ string_of_expr e2
   | PreUnop(o, e) ->  string_of_uop o ^ string_of_expr e

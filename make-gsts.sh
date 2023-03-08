@@ -41,9 +41,9 @@ if [ "$#" -eq 0 ]; then
         fi
         gold_standard="${test_dir}fail-${ftest}.gst"
         ./toplevel.native < $file_name 2> $gold_standard
-    done 
-
-    exit 
+    done
+    exit
+    
 
 elif [ "$#" -eq 2 ]; then 
     if [ "$2" = "fail" ] || [ "$2" = "test" ]; then 

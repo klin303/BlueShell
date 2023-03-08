@@ -22,6 +22,9 @@ rule tokenize = parse
 | ','        { COMMA }
 | '\''       { character_of lexbuf }
 | '"'        { string_of (Buffer.create 10) lexbuf }
+| "&"        { AMPERSAND }
+| "<"        { LANGLE }
+| ">"        { RANGLE }
 (* arithmetic symbols *)
 | '+'        { PLUS }       
 | '-'        { MINUS }
@@ -64,11 +67,13 @@ rule tokenize = parse
 | "./"       { RUN }
 | "?"        { EXITCODE }
 | "$"        { PATH }
+| "withargs" { WITHARGS }
 (* list operators *)
 | '['        { LBRACKET }  
 | ']'        { RBRACKET }
 | "::"       { CONS }
 | "len"      { LEN }
+| "of"       { OF }
 | digits as lxm { LITERAL(int_of_string lxm) }
 | digits '.'  digit* as lxm { FLIT(lxm) }
 | ['A'-'Z' 'a'-'z']['A'-'Z' 'a'-'z' '0'-'9' '_']* + as lit { ID(lit) }

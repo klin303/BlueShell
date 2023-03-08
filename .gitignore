@@ -1,4 +1,4 @@
 scanner.ml
-parser.out
+parser.output
 _build/*
 toplevel.native

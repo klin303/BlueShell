@@ -13,8 +13,8 @@
 # for this list to be updated.
 # The name is in the filename as "test-<filename>.bs"
 #
-tests=$(Make print_succtests)
-fail_tests=$(Make print_failtests)
+tests=$(make print_succtests)
+fail_tests=$(make print_failtests)
 
 
 

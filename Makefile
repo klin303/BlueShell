@@ -30,11 +30,11 @@ clean :
 TESTS = \
 	arith1 bool1 char1 elseif1 emptyfile exec1 exec2 exec3 exec4 exec5 float1 \
 	function1 function2 function3 function4 function5 hofs1 if-elses1 indexing1 \
-	int1 int2 lists1 program string1 string2 types1 vdecl1
+	int1 int2 lists1 program string1 string2 types1 vdecl1 
 
 FAILS = \
 	assign1 cons1 function2 noend badif1 badeq1 char1 int1 int2 program types1 \
-	string1
+	string1 list1
 
 TESTFILES = $(TESTS:%=test-%.bs) $(TESTS:%=test-%.gst) \
 	    $(FAILS:%=fail-%.bs) $(FAILS:%=fail-%.gst)
