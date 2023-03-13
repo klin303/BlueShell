@@ -22,16 +22,22 @@ echo "Making top level:"
 make clean
 make toplevel.native 
 
-
+echo "\n"
+echo "\n"
+echo "\n"
+echo "**********************RUNNING SUCCESS TESTS**********************\n"
 for test in $tests 
 do 
-    echo "Running test $test........\n"
+    echo "Running test $test........"
     file_name="tests/test-${test}.bs"
     gold_standard="tests/test-${test}.gst"
     ./toplevel.native < $file_name > "$test.tsout"
     diff "$test.tsout" $gold_standard > $test.diff 
     if [ -s $test.diff ]; then
-        echo "ERROR: AST FOR ${test} DOES NOT MATCH GSAST\n\n"
+        echo "\nERROR: AST FOR ${test} DOES NOT MATCH GSAST\n\n"
+        cat $test.diff
+    else
+        echo "PASSED \n"
     fi 
 
 done 
@@ -39,20 +45,29 @@ done
 echo "\n"
 echo "\n"
 echo "\n"
-
+echo "**********************RUNNING FAILURE TESTS**********************\n"
 
 # cringe fail test compilation
 for ftest in $fail_tests 
 do 
-    echo "Running failure test $ftest............\n"
+    echo "Running failure test $ftest............"
     file_name="tests/fail-${ftest}.bs"
     fail_standard="tests/fail-${ftest}.gst"
     ./toplevel.native < $file_name 2> "$ftest.tsout"
     diff "$ftest.tsout" $fail_standard > $ftest.diff 
     if [ -s $ftest.diff ]; then
-        echo "ERROR: OUTPUT FOR ${ftest} DOES NOT MATCH EXPECTED OUTPUT \n\n "
+        echo "ERROR: OUTPUT FOR ${ftest} DOES NOT MATCH EXPECTED OUTPUT \n "
+        cat $ftest.diff
+    else
+        echo "PASSED \n"
     fi 
 
 done 
 
+echo "removing .tsout and .diff files created:"
+
+make clean_tests
+echo "\n"
+
+echo "bye"
 # bye
