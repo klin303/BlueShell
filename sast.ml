@@ -1,3 +1,5 @@
+(* Semantically-checked Abstract Syntax Tree and functions for printing it *)
+
 open Ast
 
 type sexpr = typ * sx
@@ -20,12 +22,12 @@ and sx =
   | SNoexpr
 
 type sstmt = 
-  Block of sstmt list
-  | sexpr of sexpr
-  | Return of sexpr
-  | If of sexpr * sstmt * sstmt
-  | For of sexpr * sexpr * sexpr * sstmt
-  | While of sexpr * sstmt
+  SBlock of sstmt list
+  | SExpr of sexpr
+  | SReturn of sexpr
+  | SIf of sexpr * sstmt * sstmt
+  | SFor of sexpr * sexpr * sexpr * sstmt
+  | SWhile of sexpr * sstmt
 
 type sfunc_decl = {
   styp : typ;
@@ -64,19 +66,19 @@ let rec string_of_sexpr (t, e) =
           ) ^ ")"
 
 let rec string_of_sstmt = function
-    Block(stmts) ->
+    SBlock(stmts) ->
       "{\n" ^ String.concat "" (List.map string_of_sstmt stmts) ^ "}\n"
-  | Expr(expr) ->     string_of_sexpr expr ^ ";\n";
-  | Return(expr) ->   "return " ^ string_of_sexpr expr ^ ";\n";
-  | If(e, s, Block([])) -> 
+  | SExpr(expr) ->     string_of_sexpr expr ^ ";\n";
+  | SReturn(expr) ->   "return " ^ string_of_sexpr expr ^ ";\n";
+  | SIf(e, s, SBlock([])) -> 
       "if (" ^ string_of_sexpr e ^ ")\n" ^ string_of_sstmt s
-  | If(e, s1, s2) ->  
+  | SIf(e, s1, s2) ->  
       "if (" ^ string_of_sexpr e ^ ")\n" ^ 
       string_of_sstmt s1 ^ "else\n" ^ string_of_sstmt s2
-  | For(e1, e2, e3, s) ->
+  | SFor(e1, e2, e3, s) ->
       "for (" ^ string_of_sexpr e1  ^ " ; " ^ string_of_sexpr e2 ^ " ; " ^
       string_of_sexpr e3  ^ ") " ^ string_of_sstmt s
-  | While(e, s) ->    "while (" ^ string_of_sexpr e ^ ") " ^ string_of_sstmt s
+  | SWhile(e, s) ->    "while (" ^ string_of_sexpr e ^ ") " ^ string_of_sstmt s
 
 let string_of_sfdecl fdecl =
   string_of_typ fdecl.styp ^ " " ^
