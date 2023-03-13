@@ -15,7 +15,7 @@ gold : all make-gsts.sh
 	./make-gsts.sh
 
 # "make toplevel.native" builds the scanner, parser, and toplevel for testing
-toplevel.native :parser.mly scanner.mll toplevel.ml 
+toplevel.native :parser.mly scanner.mll codegen.ml semant.ml toplevel.ml 
 	opam exec -- \
 	ocamlbuild -use-ocamlfind toplevel.native
 
