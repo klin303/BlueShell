@@ -1,0 +1,15 @@
+int x = 2;
+char y = 'a';
+bool b = true;
+float f = 1.1;
+string s = "hello";
+int c; 
+c = 2;
+float f; 
+f = 2.2;
+string str; 
+str = "hello world";
+bool boo;
+boo = false;
+char charrr;
+charrr = 'b';

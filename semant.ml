@@ -51,55 +51,74 @@ let check (stmts, functions) =
     with Not_found -> (* Try looking in outer blocks *)
       match scope.parent with
         Some(parent) -> type_of_identifier parent name
-      | _ -> raise Not_found
+      | _ -> raise (Failure ("here"))
   in
 
-  let rec expr curr_symbol_table expression =
+  let add_bind (scope : symbol_table) (typ, name) =
+    let map = scope.variables in
+    let new_map = StringMap.add name typ map in
+    { variables = new_map; parent = scope.parent }
+
+  in
+  let rec expr (curr_symbol_table : symbol_table) expression =
   match expression with
-    Literal l     -> (Int, SLiteral l)
-  | Fliteral l    -> (Float, SFliteral l)
-  | BoolLit l     -> (Bool, SBoolLit l)
-  | Id var        -> (type_of_identifier curr_symbol_table var, SId var)
-  (* | Id s          -> raise (Failure ("not yet implemented")) *)
-  | Char s        -> (Char, SChar s)
-  | String s      -> (String, SString s)
-  | Exec(e1, e2)  -> raise (Failure ("not yet implemented"))
-  | Index(e1, e2) -> raise (Failure ("not yet implemented"))
-  | Binop(e1, op, e2) -> raise (Failure ("not yet implemented"))
-  | PreUnop(op, e)    -> raise (Failure ("not yet implemented"))
-  | PostUnop(e, op)   -> raise (Failure ("not yet implemented"))
-  (* | Assign(var, e) as ex ->
-    let lt = type_of_identifier var
-    and (rt, e') = expr e in
+    Literal l     -> (curr_symbol_table, (Int, SLiteral l))
+  | Fliteral l    -> (curr_symbol_table, (Float, SFliteral l))
+  | BoolLit l     -> (curr_symbol_table, (Bool, SBoolLit l))
+  | Id var        -> (curr_symbol_table, (type_of_identifier curr_symbol_table var, SId var))
+  (* | Id var -> raise (Failure ("id")) *)
+  | Char s        -> (curr_symbol_table, (Char, SChar s))
+  | String s      -> (curr_symbol_table, (String, SString s))
+  | Exec(e1, e2)  -> raise (Failure ("not yet implemented exec"))
+  | Index(e1, e2) -> raise (Failure ("not yet implemented index"))
+  | Binop(e1, op, e2) -> 
+    (match op with
+      ExprAssign -> let (symbol_table', (ty2, e2')) = expr curr_symbol_table e2 
+                    in let (symbol_table'', (ty1, e1')) = expr symbol_table' e1 in 
+                    let same = ty2 = ty1 in 
+                    let ty = match e1' with 
+                      SBind b when same ->  fst b 
+                      | SId var when same -> type_of_identifier symbol_table'' var
+                      | _ -> raise (Failure ("invalid assignment"))
+                    in (symbol_table'', (ty, SBinop((ty1, e1'), op, (ty2, e2'))))
+      | _ -> raise (Failure ("not yet implemented other binops")))
+  | PreUnop(op, e)    -> raise (Failure ("not yet implemented pre"))
+  | PostUnop(e, op)   -> raise (Failure ("not yet implemented post"))
+  | Assign(var, e) as ex ->
+    let lt = type_of_identifier curr_symbol_table var
+    and (_, (rt, e')) = expr curr_symbol_table e in
     let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^ 
       string_of_typ rt ^ " in " ^ string_of_expr ex
-    in (check_assign lt rt err, SAssign(var, (rt, e'))) *)
-  | Assign(var, e) -> raise (Failure ("not yet implemented"))
-  | Call(fname, args) -> raise (Failure ("not yet implemented"))
-  | List expr_list -> raise (Failure ("not yet implemented"))
-  | Bind bind -> raise (Failure ("not yet implemented"))
-  | Noexpr      -> (Void, SNoexpr)
+    in (curr_symbol_table, (check_assign lt rt err, SAssign(var, (rt, e'))))
+  (* | Assign(var, e) -> raise (Failure ("not yet implemented")) *)
+  | Call(fname, args) -> raise (Failure ("not yet implemented call"))
+  | List expr_list -> raise (Failure ("not yet implemented list"))
+  | Bind bind -> (add_bind curr_symbol_table bind, (fst bind, SBind bind))
+  (* | Bind(bind) -> raise (Failure ("bind")) *)
+  | Noexpr      -> (curr_symbol_table, (Void, SNoexpr))
 
   in
-  let rec check_stmt curr_symbol_table statement =
+  let rec check_stmt (curr_symbol_table : symbol_table) statement =
   match statement with
-    Block stmts -> raise (Failure ("not yet implemented"))
-  | Expr e -> (curr_symbol_table, SExpr (expr curr_symbol_table e))
-  | Return e -> raise (Failure ("not yet implemented"))
-  | If(e, s1, s2) -> raise (Failure ("not yet implemented"))
-  | For(e1, e2, e3, s) -> raise (Failure ("not yet implemented"))
-  | While(e, s) -> raise (Failure ("not yet implemented"))
+    Block stmts -> raise (Failure ("not yet implemented block"))
+  | Expr e -> 
+    let (new_symbol_table, e') = expr curr_symbol_table e in
+    (new_symbol_table, SExpr e')
+  | Return e -> raise (Failure ("not yet implemented return"))
+  | If(e, s1, s2) -> raise (Failure ("not yet implemented if"))
+  | For(e1, e2, e3, s) -> raise (Failure ("not yet implemented for"))
+  | While(e, s) -> raise (Failure ("not yet implemented while"))
 
-  in
-  let check_function = raise (Failure ("not yet implemented"))
+  (* in
+  let check_function = raise (Failure ("not yet implemented check func")) *)
 
   (* Final checked program to return *)
   in
   (* Start with empty environment and map over statements, carrying updated environment as you go *)
   let empty_env = { variables = StringMap.empty ; parent = None }
   in
-  let (_,checked_statements) = List.fold_left_map check_stmt empty_env stmts
+  let (_, checked_statements) = List.fold_left_map check_stmt empty_env (List.rev stmts)
   (* in
   let get_statements (table, sstatement) = sstatement *)
-  in (checked_statements, [])
+  in (List.rev checked_statements, [])
   (* in (List.fold_left check_stmt { variables = StringMap.empty ; parent = None } stmts, []) *)

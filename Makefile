@@ -6,7 +6,13 @@ all : toplevel.native
 # "make test" compiles everything and runs the regression tests
 .PHONY : test
 test : all testall.sh
-	./testall.sh
+	./testall.sh 
+
+# "make test-sast" compiles everything and runs the regression tests for
+# semantic checking
+.PHONY : test-sast
+test-sast : all testsast.sh 
+	./testsast.sh
 
 # 'make gold' compiles everything and re-runs all the tests to produce new 
 # gold standards. DO NOT RUN UNLESS YOU WANT ALL GOLD STANDARDS TO BE REMADE
