@@ -58,8 +58,9 @@ let check (stmts, functions) =
     let map = scope.variables in
     let new_map = StringMap.add name typ map in
     { variables = new_map; parent = scope.parent }
-
+  
   in
+  
   let rec expr (curr_symbol_table : symbol_table) expression =
   match expression with
     Literal l     -> (curr_symbol_table, (Int, SLiteral l))
@@ -69,7 +70,15 @@ let check (stmts, functions) =
   (* | Id var -> raise (Failure ("id")) *)
   | Char s        -> (curr_symbol_table, (Char, SChar s))
   | String s      -> (curr_symbol_table, (String, SString s))
-  | Exec(e1, e2)  -> raise (Failure ("not yet implemented exec"))
+  | Exec(e1, e2)  -> 
+    let (_, (ty1, e1')) = expr curr_symbol_table e1 in
+    let (_, (ty2, e2')) = expr curr_symbol_table e2 in
+    (match ty1 with
+      String -> 
+        (match ty2 with
+          List_type String -> (curr_symbol_table, (Exec, (SExec ((ty1, e1'), (ty2, e2')))))
+          | _ -> raise (Failure ("args must be a list of string")))
+      | _ -> raise (Failure ("path must be a string")))
   | Index(e1, e2) -> raise (Failure ("not yet implemented index"))
   | Binop(e1, op, e2) -> 
     (match op with
@@ -82,7 +91,13 @@ let check (stmts, functions) =
                       | _ -> raise (Failure ("invalid assignment"))
                     in (symbol_table'', (ty, SBinop((ty1, e1'), op, (ty2, e2'))))
       | _ -> raise (Failure ("not yet implemented other binops")))
-  | PreUnop(op, e)    -> raise (Failure ("not yet implemented pre"))
+  | PreUnop(op, e)    -> 
+    (match op with 
+    Run -> let (_, (ty1, e1)) = expr curr_symbol_table e in 
+              match ty1 with
+                Exec -> (curr_symbol_table, (String, SString "")) (* what do we put here*)
+                | _ -> raise (Failure ("Run takes type executable"))
+    | _ -> raise (Failure ("other preunops not implemented yet")))
   | PostUnop(e, op)   -> raise (Failure ("not yet implemented post"))
   | Assign(var, e) as ex ->
     let lt = type_of_identifier curr_symbol_table var
@@ -92,7 +107,26 @@ let check (stmts, functions) =
     in (curr_symbol_table, (check_assign lt rt err, SAssign(var, (rt, e'))))
   (* | Assign(var, e) -> raise (Failure ("not yet implemented")) *)
   | Call(fname, args) -> raise (Failure ("not yet implemented call"))
-  | List expr_list -> raise (Failure ("not yet implemented list"))
+  | List expr_list -> 
+    let rec check_list (exprs : expr list) curr_symbol_table =
+      match exprs with
+      fst_elem :: snd_elem :: rest -> let (_, (ty1, _)) = expr curr_symbol_table fst_elem in let
+                                (_, (ty2, _)) = expr curr_symbol_table snd_elem in (ty1 = ty2 && check_list rest curr_symbol_table)
+      | fst_elem :: [] -> true
+      | [] -> true
+    in
+    let expr_to_sexpr elem =
+      let (_, elem') = expr curr_symbol_table elem in
+      elem'
+    in
+    (match expr_list with
+      [] -> raise (Failure ("we didn't think about empty list yet"))
+    | elem :: elems -> let (_, elem') = expr curr_symbol_table elem in
+      match (check_list elems curr_symbol_table) with
+        true -> (curr_symbol_table, (List_type (fst elem'), SList(List.map expr_to_sexpr expr_list)))
+        | false -> raise (Failure ("list must be monotype"))
+    )
+    
   | Bind bind -> (add_bind curr_symbol_table bind, (fst bind, SBind bind))
   (* | Bind(bind) -> raise (Failure ("bind")) *)
   | Noexpr      -> (curr_symbol_table, (Void, SNoexpr))

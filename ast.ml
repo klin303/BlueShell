@@ -4,7 +4,7 @@
 
 (* general binary operators *)
 type op = Add | Sub | Mult | Div | Equal | Neq | Less | Leq | Greater | Geq |
-          And | Or | Pipe | Cons | ExprAssign
+          And | Or | Pipe | Cons | ExprAssign 
 
 (* index has a special type because of its formatting *)
 type index = Index
@@ -13,7 +13,7 @@ type index = Index
 type uop = Neg | Not | ExitCode | Run | Path | Length
 
 (* types *)
-type typ = Int | Bool | Float | Void | Exec | Char | String | List_type of typ | Function
+type typ = Int | Bool | Float | Void | Exec | Char | String | List_type of typ | EmptyList | Function
 
 (* bind sets a variable name to a type *)
 type bind = typ * string
@@ -99,6 +99,7 @@ let rec string_of_typ = function
   | String ->     "string"
   | List_type(t) ->    "list of " ^ string_of_typ t
   | Function ->   "func"
+  | EmptyList -> ""
 
 let string_of_vdecl (t, id) = string_of_typ t ^ " " ^ id
 
