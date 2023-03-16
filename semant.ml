@@ -95,7 +95,7 @@ let check (stmts, functions) =
     (match op with 
     Run -> let (_, (ty1, e1)) = expr curr_symbol_table e in 
               match ty1 with
-                Exec -> (curr_symbol_table, (String, SString "")) (* what do we put here*)
+                Exec -> (curr_symbol_table, (String, SPreUnop (Run, (ty1, e1)))) (* what do we put here*)
                 | _ -> raise (Failure ("Run takes type executable"))
     | _ -> raise (Failure ("other preunops not implemented yet")))
   | PostUnop(e, op)   -> raise (Failure ("not yet implemented post"))
