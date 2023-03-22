@@ -18,7 +18,8 @@ let translate (stmts, functions) =
   and i1_t       = L.i1_type     context
   and float_t    = L.double_type context
   and void_t     = L.void_type   context 
-  and vector_t   = L.vector_type context
+  (* in
+  let string_t   = L.vector_type i8_t 10; context *)
   (* Create an LLVM module -- this is a "container" into which we'll 
      generate actual code *)
   and the_module = L.create_module context "BlueShell" in
@@ -30,8 +31,7 @@ let translate (stmts, functions) =
     | A.Float   -> float_t
     | A.Void    -> void_t
     | A.Char    -> i8_t
-    | A.String  -> vector_t i8_t 10
-    | A.List_type ty -> vector ty 10
+    | _ -> raise (Failure "wat")
   in
 
   the_module
