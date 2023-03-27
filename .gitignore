@@ -2,3 +2,4 @@ scanner.ml
 parser.output
 _build/*
 toplevel.native
+.DS_Store

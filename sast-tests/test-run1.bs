@@ -1,2 +1,1 @@
-exec e = <"echo" withargs ["hello world"]>;
-./e;
+./<"echo" withargs ["hello world"]>;
