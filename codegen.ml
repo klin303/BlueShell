@@ -49,12 +49,12 @@ let translate (stmts, functions) =
   (* the first blocks that appear in the program are the function declarations.
   What should we make the first block in our program for now  *)
   let main = L.const_stringz context "main" in
-  let main2 = L.define_function "main" void_t the_module in
+  let main_func = L.define_function "main" (L.function_type i32_t [||]) the_module in
   (* Fill in the body of the given function *)
   (* let build_function_body fdecl =
     let (the_function, _) = StringMap.find fdecl.sfname function_decls in
     let builder = L.builder_at_end context (L.entry_block the_function) in *)
-  let builder = L.builder_at_end context (L.entry_block main2) in
+  let builder = L.builder_at_end context (L.entry_block main_func) in
   (*let exec : *)
   let rec expr builder ((_, e) : sexpr) = match e with
       SString s -> L.build_global_stringptr s "" builder (* first s is string
@@ -68,7 +68,7 @@ let translate (stmts, functions) =
       [] -> L.const_pointer_null list_t
                                       (* pointer to first element *)
       | first :: rest -> let value = L.build_malloc (ltype_of_typ (fst first)) ""
-      builder in          raise (Failure "checking")) (*
+      builder in          
                           (* to do: strings are pointers but other things are
                           not *)
                          let first_elem = expr builder first in
@@ -83,7 +83,7 @@ let translate (stmts, functions) =
                          in let head = L.const_struct context [| first_elem ; rest_SList|] in
                          (* put the struct into the place in memory  *)
                          let _ = L.build_store head head_ptr builder
-                         in head_ptr )*)
+                         in head_ptr )
 
                         (* use build store *)
       | _ -> raise (Failure "Expression not implemented yet")
@@ -94,7 +94,7 @@ let translate (stmts, functions) =
   | _ -> raise (Failure "Statement not implemented yet")
   in
   let _ = (List.fold_left_map stmt builder stmts) in
- let _ = L.build_ret_void builder  in
+ let _ = L.build_ret (L.const_int i32_t 0) builder  in
 
   (*
   (* Declare each global variable; remember its value in a map *)
