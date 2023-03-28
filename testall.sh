@@ -8,66 +8,230 @@
 # script.
 
 
-# 
-# Both succ and fail test names need to be added to the Makefile 
-# for this list to be updated.
-# The name is in the filename as "test-<filename>.bs"
-#
-tests=$(make print_succtests)
-fail_tests=$(make print_failtests)
+# Path to the LLVM interpreter
+LLI="lli"
+#LLI="/usr/local/opt/llvm/bin/lli"
+
+# Path to the LLVM compiler
+LLC="llc"
+
+# Path to the C compiler
+CC="cc"
+
+# BlueShell
+BLUESHELL="./toplevel.native"
 
 
+Usage() {
+    echo "Usage: testall.sh [options] [.mc files]"
+    echo "-k    Keep intermediate files"
+    echo "-h    Print this help"
+    exit 1
+}
 
-echo "Making top level:"
-make clean
-make toplevel.native 
+# Run <args>
+# Report the command, run it, and report any errors
+Run() {
+    echo $* 1>&2
+    eval $* || {
+	SignalError "$1 failed on $*"
+	return 1
+    }
+}
 
-echo "\n"
-echo "\n"
-echo "\n"
-echo "**********************RUNNING SUCCESS TESTS**********************\n"
-for test in $tests 
-do 
-    echo "Running test $test........"
-    file_name="tests/test-${test}.bs"
-    gold_standard="tests/test-${test}.gst"
-    ./toplevel.native < $file_name > "$test.tsout"
-    diff "$test.tsout" $gold_standard > $test.diff 
-    if [ -s $test.diff ]; then
-        echo "\nERROR: AST FOR ${test} DOES NOT MATCH GSAST\n\n"
-        cat $test.diff
+# Regression testing script for BlueShell
+# Step through a list of files
+#  Compile, run, and check the output of each expected-to-work test
+#  Compile and check the error of each expected-to-fail test
+
+# Path to the LLVM interpreter
+LLI="lli"
+#LLI="/usr/local/opt/llvm/bin/lli"
+
+# Path to the LLVM compiler
+LLC="llc"
+
+# Path to the C compiler
+CC="cc"
+
+# Path to the microc compiler.  Usually "./microc.native"
+# Try "_build/microc.native" if ocamlbuild was unable to create a symbolic link.
+BLUESHELL="./toplevel.native"
+
+# Set time limit for all operations
+ulimit -t 30
+
+globallog=testall.log
+rm -f $globallog
+error=0
+globalerror=0
+
+keep=0
+
+Usage() {
+    echo "Usage: testall.sh [options] [.bs files]"
+    echo "-k    Keep intermediate files"
+    echo "-h    Print this help"
+    exit 1
+}
+
+SignalError() {
+    if [ $error -eq 0 ] ; then
+	echo "FAILED TEST "
+	error=1
+    fi
+    echo "  $1"
+}
+
+# Compare <outfile> <reffile> <difffile>
+# Compares the outfile with reffile.  Differences, if any, written to difffile
+Compare() {
+    generatedfiles="$generatedfiles $3"
+    echo diff -b $1 $2 ">" $3 1>&2
+    diff -b "$1" "$2" > "$3" 2>&1 || {
+	SignalError "$1 differs"
+	echo "FAILED $1 differs from $2" 1>&2
+    }
+}
+
+# Run <args>
+# Report the command, run it, and report any errors
+Run() {
+    echo $* 1>&2
+    eval $* || {
+	SignalError "$1 failed on $*"
+	return 1
+    }
+}
+
+# RunFail <args>
+# Report the command, run it, and expect an error
+RunFail() {
+    echo $* 1>&2
+    eval $* && {
+	SignalError "failed: $* did not report an error"
+	return 1
+    }
+    return 0
+}
+
+Check() {
+    error=0
+    basename=`echo $1 | sed 's/.*\\///
+                             s/.bs//'`
+    reffile=`echo $1 | sed 's/.bs$//'`
+    basedir="`echo $1 | sed 's/\/[^\/]*$//'`/."
+
+    echo -n "$basename..."
+
+    echo 1>&2
+    echo "###### Testing $basename" 1>&2
+
+    generatedfiles=""
+
+    generatedfiles="$generatedfiles ${basename}.ll ${basename}.s ${basename}.exe ${basename}.out" &&
+    Run "$MICROC" "$1" ">" "${basename}.ll" &&
+    Run "$LLC" "-relocation-model=pic" "${basename}.ll" ">" "${basename}.s" &&
+    # Run "$CC" "-o" "${basename}.exe" "${basename}.s" "printbig.o" &&
+    Run "./${basename}.exe" > "${basename}.out" &&
+    Compare ${basename}.out ${reffile}.out ${basename}.diff
+
+    # Report the status and clean up the generated files
+
+    if [ $error -eq 0 ] ; then
+	if [ $keep -eq 0 ] ; then
+	    rm -f $generatedfiles
+	fi
+	echo "OK"
+	echo "###### SUCCESS" 1>&2
     else
-        echo "PASSED \n"
-    fi 
+	echo "###### FAILED" 1>&2
+	globalerror=$error
+    fi
+}
 
-done 
+CheckFail() {
+    error=0
+    basename=`echo $1 | sed 's/.*\\///
+                             s/.bs//'`
+    reffile=`echo $1 | sed 's/.bs$//'`
+    basedir="`echo $1 | sed 's/\/[^\/]*$//'`/."
 
-echo "\n"
-echo "\n"
-echo "\n"
-echo "**********************RUNNING FAILURE TESTS**********************\n"
+    echo -n "$basename..."
 
-# cringe fail test compilation
-for ftest in $fail_tests 
-do 
-    echo "Running failure test $ftest............"
-    file_name="tests/fail-${ftest}.bs"
-    fail_standard="tests/fail-${ftest}.gst"
-    ./toplevel.native < $file_name 2> "$ftest.tsout"
-    diff "$ftest.tsout" $fail_standard > $ftest.diff 
-    if [ -s $ftest.diff ]; then
-        echo "ERROR: OUTPUT FOR ${ftest} DOES NOT MATCH EXPECTED OUTPUT \n "
-        cat $ftest.diff
+    echo 1>&2
+    echo "###### Testing $basename" 1>&2
+
+    generatedfiles=""
+
+    generatedfiles="$generatedfiles ${basename}.err ${basename}.diff" &&
+    RunFail "$MICROC" "<" $1 "2>" "${basename}.err" ">>" $globallog &&
+    Compare ${basename}.err ${reffile}.err ${basename}.diff
+
+    # Report the status and clean up the generated files
+
+    if [ $error -eq 0 ] ; then
+	if [ $keep -eq 0 ] ; then
+	    rm -f $generatedfiles
+	fi
+	echo "OK"
+	echo "###### SUCCESS" 1>&2
     else
-        echo "PASSED \n"
-    fi 
+	echo "###### FAILED" 1>&2
+	globalerror=$error
+    fi
+}
 
-done 
+while getopts kdpsh c; do
+    case $c in
+	k) # Keep intermediate files
+	    keep=1
+	    ;;
+	h) # Help
+	    Usage
+	    ;;
+    esac
+done
 
-echo "removing .tsout and .diff files created:"
+shift `expr $OPTIND - 1`
 
-make clean_tests
-echo "\n"
+LLIFail() {
+  echo "Could not find the LLVM interpreter \"$LLI\"."
+  echo "Check your LLVM installation and/or modify the LLI variable in testall.sh"
+  exit 1
+}
 
-echo "bye"
-# bye
+which "$LLI" >> $globallog || LLIFail
+
+# if [ ! -f printbig.o ]
+# then
+#     echo "Could not find printbig.o"
+#     echo "Try \"make printbig.o\""
+#     exit 1
+# fi
+
+if [ $# -ge 1 ]
+then
+    files=$@
+else
+    files="tests/test-*.bs tests/fail-*.bs"
+fi
+
+for file in $files
+do
+    case $file in
+	*test-*)
+	    Check $file 2>> $globallog
+	    ;;
+	*fail-*)
+	    CheckFail $file 2>> $globallog
+	    ;;
+	*)
+	    echo "unknown file type $file"
+	    globalerror=1
+	    ;;
+    esac
+done
+
+exit $globalerror
+
