@@ -8,19 +8,37 @@ Mary-Joy Sidhom (mary-joy.sidhom@tufts.edu)
 *** Testing Suite ***
 test-ls.bs: Creates and runs an executable with path 'ls' and no arguments
 
-*** Compiling our Compiler ***
-make
+*** Compiling the BlueShell Compiler ***
+To compile the BlueShell Compiler, run:
+  make
 
-*** Run and validate tests ***
+*** Run and Validate Tests ***
 To run and validate all tests:
 ./testall.sh -a 
 
 To run and validate a single test:
 ./testall.sh -s {input-file}.bs
 
+To keep intermediate output files produced during compilation (.s and .llvm files):
+./testall.sh -a -keepc
+
+To keep intermediate output files produced during testing (.out and .diff files):
+./testall.sh -a -keept
+
+*** Interpreting Testing Results ***
+The testall script validates that a BlueShell program succeeds at every step of
+compilation. 
+If no errors occur, there will be no observable output. 
+If an error occurs during compilation, the testall script prints the error and
+exits.
+
+If a test's output matches the gold standard, testall will print 'PASSED'.
+If a test's output does not match the gold standard, testall will print an error
+and the differences between the gold standard and the output. 
+
 *** Compiling a BlueShell program ***
 You can compile a BlueShell program with the following command:
 
-sh compile.sh {input_file}.bs
+./compile.sh {input_file}.bs
 
 This produces a file named {input_file}.exe, which can be run using ./{input_file}.exe
