@@ -106,7 +106,7 @@ and character_of = parse
 
 (* string of rule *)
 and string_of buf = parse
-  '"'         { STRING(Buffer.contents buf) }
+  '"'         {  STRING(Buffer.contents buf) }
   | '\\' 'n'  { Buffer.add_char buf '\n'; string_of buf lexbuf }
   | '\\' '"'  { Buffer.add_char buf '"'; string_of buf lexbuf  }
   | '\\' 'r'  { Buffer.add_char buf '\r'; string_of buf lexbuf }
