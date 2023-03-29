@@ -12,16 +12,15 @@ test-ls.bs: Creates and runs an executable with path 'ls' and no arguments
 make
 
 *** Run and validate tests ***
-'test-ls.bs' can be run and validated using 'test-ls.sh'.
+To run and validate all tests:
+./testall.sh -a 
 
-We validate 'test-ls.bs' by running ls on the local machine and 
-comparing the output of the ls command and our program.
+To run and validate a single test:
+./testall.sh -s {input-file}.bs
 
 *** Compiling a BlueShell program ***
+You can compile a BlueShell program with the following command:
 
+sh compile.sh {input_file}.bs
 
-
-*** Running our Test Script ***
-./testall.sh
-> Running this script creates auxiliary .out and .diff files 
-for each test. Running `make clean_tests` will remove them. 
+This produces a file named {input_file}.exe, which can be run using ./{input_file}.exe

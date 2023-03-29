@@ -1,16 +1,19 @@
 # Both succ and fail test names need to be added to the Makefile
 # for this list to be updated.
 # The name is in the filename as "test-<filename>.bs"
-#
-tests=$(make print_succtests)
-fail_tests=$(make print_failtests)
 
+Usage() {
+    echo "Usage: ./test-all.sh [-a | -s <testname>] [-kio] \n
+          Flags:
+            -a : run all tests specified in /tests directories 
+                 and test against expected output
+            -s <testname>: 
+                Run a single test located in test/<fail|tests>-<testname>.bs
+                and tests against expected output
+            -kio : Keep intermediate output files produced"
+}
 
-run_single_test()
-
-
-
-run_all_tests()
+run_gsts_tests()
 {
     # Both succ and fail test names need to be added to the Makefile
     # for this list to be updated.
@@ -73,6 +76,52 @@ run_all_tests()
     echo "\n"
 
     echo "bye"
+    exit
     # bye
 
 }
+
+run_single_test() {
+    testpath="tests/{$1}.bs"
+    ./compile.sh 
+    output="{$1}.exe"
+    ./output > "{$1}.out"
+    
+}
+
+
+# wrong number of arguments 
+if [ $# -lt 1 ] 
+    then 
+    Usage
+fi
+
+if [ $1 = "-a" ]
+    then 
+    run_all_tests
+fi 
+
+if [ $1 = "-s" ]
+    then
+    # $2 is the file name 
+    echo $2
+fi 
+
+# # no flag = run all
+
+# if [-z "$1" ]
+#     then
+#     run_all_tests
+# fi 
+
+# # if we're running a 
+
+
+
+
+# run_single_test()
+# {
+
+# }
+
+

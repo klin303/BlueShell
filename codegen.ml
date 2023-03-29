@@ -52,7 +52,7 @@ let translate (stmts, functions) =
 
   (* the first blocks that appear in the program are the function declarations.
   What should we make the first block in our program for now  *)
-  let main = L.const_stringz context "main" in
+  (* let main = L.const_stringz context "main" in *)
   let main_func = L.define_function "main" (L.function_type i32_t [||]) the_module in
   (* Fill in the body of the given function *)
   (* let build_function_body fdecl =

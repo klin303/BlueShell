@@ -21,7 +21,7 @@ let check (stmts, functions) =
 
   (* Check if a certain kind of binding has void type or is a duplicate
     of another, previously checked binding *)
-  let check_binds (kind : string) (to_check : bind list) =
+  (* let check_binds (kind : string) (to_check : bind list) =
     let name_compare (_, n1) (_, n2) = compare n1 n2 in
     let check_it checked binding =
       let void_err = "illegal void " ^ kind ^ " " ^ snd binding
@@ -36,7 +36,7 @@ let check (stmts, functions) =
 
     in let _ = List.fold_left check_it [] (List.sort name_compare to_check)
         in to_check
-  in
+  in *)
 
   (* Raise an exception if the given rvalue type cannot be assigned to
        the given lvalue type *)
@@ -93,10 +93,10 @@ let check (stmts, functions) =
       | _ -> raise (Failure ("not yet implemented other binops")))
   | PreUnop(op, e)    ->
     (match op with
-    Run -> let (_, (ty1, e1)) = expr curr_symbol_table e in
-              match ty1 with
+      Run -> let (_, (ty1, e1)) = expr curr_symbol_table e in
+              (match ty1 with
                 Exec -> (curr_symbol_table, (String, SPreUnop (Run, (ty1, e1)))) (* what do we put here*)
-                | _ -> raise (Failure ("Run takes type executable"))
+                | _ -> raise (Failure ("Run takes type executable")))
     | _ -> raise (Failure ("other preunops not implemented yet")))
   | PostUnop(e, op)   -> raise (Failure ("not yet implemented post"))
   | Assign(var, e) as ex ->

@@ -14,6 +14,7 @@
 tests=$(Make print_succtests)
 fail_tests=$(Make print_failtests)
 test_dir="tests/"
+gsts_dir="tests/gsts/"
 
 if [ "$#" -eq 0 ]; then
     for test in $tests 
@@ -25,7 +26,7 @@ if [ "$#" -eq 0 ]; then
             echo "****ALERT***** Test $test doesn't exist\n\n\n\n"
             continue;
         fi
-        gold_standard="${test_dir}test-${test}.gst"
+        gold_standard="${gsts_dir}test-${test}.gst"
         ./toplevel.native < $file_name > $gold_standard
     done 
 
@@ -39,7 +40,7 @@ if [ "$#" -eq 0 ]; then
             echo "****ALERT***** Test $ftest doesn't exist\m\n\n\n"
             continue;
         fi
-        gold_standard="${test_dir}fail-${ftest}.gst"
+        gold_standard="${gsts_dir}fail-${ftest}.gst"
         ./toplevel.native < $file_name 2> $gold_standard
     done
     exit

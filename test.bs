@@ -1,3 +1,0 @@
-exec s;
-
-void foo() { s = "hi" {1, 2, 3}; }

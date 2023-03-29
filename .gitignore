@@ -3,3 +3,8 @@ parser.output
 _build/*
 toplevel.native
 .DS_Store
+*.llvm
+*.llvm.s
+*.out
+*.o
+*.exe
