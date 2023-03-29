@@ -5,16 +5,23 @@ Alan Luc (alan.luc@tufts.edu)
 Tina Ma (tina.ma@tufts.edu)
 Mary-Joy Sidhom (mary-joy.sidhom@tufts.edu)
 
-*** Compiling our Compiler ***
-make toplevel.native
+*** Testing Suite ***
+test-ls.bs: Creates and runs an executable with path 'ls' and no arguments
 
-*** Executing our Compiler ***
-./toplevel.native < {input_filename}
+*** Compiling our Compiler ***
+make
+
+*** Run and validate tests ***
+'test-ls.bs' can be run and validated using 'test-ls.sh'.
+
+We validate 'test-ls.bs' by running ls on the local machine and 
+comparing the output of the ls command and our program.
+
+*** Compiling a BlueShell program ***
+
+
 
 *** Running our Test Script ***
 ./testall.sh
 > Running this script creates auxiliary .out and .diff files 
 for each test. Running `make clean_tests` will remove them. 
-
-*** Remaining Syntax to Add ***
-none (for now)

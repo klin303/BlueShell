@@ -47,12 +47,13 @@ FAILS = \
 TESTFILES = $(TESTS:%=test-%.bs) $(TESTS:%=test-%.gst) \
 	    $(FAILS:%=fail-%.bs) $(FAILS:%=fail-%.gst)
 
-ZIPFILES = ast.ml Makefile toplevel.ml parser.mly README scanner.mll \
-		testall.sh make-gsts.sh $(TESTFILES:%=tests/%)
+ZIPFILES = ast.ml scanner.mll toplevel.ml parser.mly sast.ml semant.ml \
+		   codegen.ml testall.sh make-gsts.sh README Makefile \
+		   testall.sh make-gsts.sh test_ls.sh $(TESTFILES:%=tests/%)
 
 # zips files and tests together
 bostonbitpackers.zip : $(ZIPFILES)
-	zip bostonbitpackers.zip $(ZIPFILES)
+	cd .. && zip bostonbitpackers.zip $(ZIPFILES)
 
 # prints the list of tests which should pass
 print_succtests:
