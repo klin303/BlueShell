@@ -84,15 +84,14 @@ let translate (stmts, functions) =
     (*L.const_struct context [| expr builder e1 ; expr builder e2 |]*)
     | SPreUnop(op, e) -> (match op with
         Run -> let exec = expr builder e in
-              let second_arg =  L.const_pointer_null ( L.pointer_type
-              (L.pointer_type i8_t)) in (*
+              let second_arg =  L.const_pointer_null (L.pointer_type i8_t) in
               let double_pointer = L.build_malloc (L.pointer_type i8_t) "" builder in
-              let _ = L.build_store second_arg double_pointer builder in*)
+              let _ = L.build_store second_arg double_pointer builder in
               let path_ptr = L.build_struct_gep exec 0 "" builder in
 
               let path = L.build_load path_ptr "" builder in
 
-              L.build_call execvp_func [| path; second_arg |] "execvp" builder
+              L.build_call execvp_func [| path; double_pointer |] "execvp" builder
       | _   -> raise (Failure "preuop not implemented"))
     | SList l -> (match l with
       [] -> L.const_pointer_null list_t
