@@ -17,7 +17,13 @@ To run and validate all tests:
 ./testall.sh -a 
 
 To run and validate a single test:
-./testall.sh -s {input-file}.bs
+./testall.sh -s {test-name}
+
+where test-name is a file in the tests directory without the .bs extension
+(you don't need the path to the file, just the file name).
+
+Example:
+./testall.sh -s test-ls
 
 To keep intermediate output files produced during compilation (.s and .llvm files):
 ./testall.sh -a -keepc
