@@ -48,16 +48,16 @@ TESTS = $(shell find tests -type f -name 'test*.bs' -exec basename {} \;)
 
 FAILS = $(shell find tests -type f -name 'fail*.bs' -exec basename {} \;)
 
-TESTFILES = $(TESTS:%=test-%.bs) $(TESTS:%=test-%.gst) \
-						$(FAILS:%=fail-%.bs) $(FAILS:%=fail-%.gst)
+TESTFILES = $(TESTS) $(TESTS:%.bs=gsts/%.gst) \
+						$(FAILS) $(FAILS:%.bs=gsts/%.gst)
 
 ZIPFILES = ast.ml scanner.mll toplevel.ml parser.mly sast.ml semant.ml \
-		   codegen.ml testall.sh compile.sh README Makefile \
+		   codegen.ml _tags exec.c testall.sh compile.sh README Makefile \
 		   $(TESTFILES:%=tests/%)
 
 # zips files and tests together
 bostonbitpackers.zip : $(ZIPFILES)
-	cd .. && zip bostonbitpackers.zip $(ZIPFILES)
+	zip bostonbitpackers.zip $(ZIPFILES)
 
 # prints the list of tests which should pass
 print_succtests:
@@ -67,9 +67,12 @@ print_succtests:
 print_failtests:
 	@echo $(FAILS)
 
+print_files:
+	@echo $(TESTFILES)
+
 #removes .out and .diff files produced by the testing script
 clean_tests:
-	rm -rf *.diff *.tsout
+	rm -rf *.diff *.out
 
 # removes .exes produced 
 clean_exes:

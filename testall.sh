@@ -1,13 +1,11 @@
 # Both succ and fail test names need to be added to the Makefile
 # for this list to be updated.
 # 
-
-kiot=false
-kioc=false
-
+tests=$(make print_succtests)
+fail_tests=$(make print_failtests)
 
 Usage() {
-    echo "Usage: ./test-all.sh [-a | -s <testname>] [-keept] [-keepc] \n
+    echo "Usage: ./testall.sh [-a | -s <testname>] [-keept] [-keepc] \n
           Flags:
             -a : run all tests specified in /tests directories 
                  and test against expected output
@@ -27,8 +25,6 @@ run_gsts_tests()
     # for this list to be updated.
     # The name is in the filename as "test-<filename>.bs"
     #
-    tests=$(make print_succtests)
-    fail_tests=$(make print_failtests)
 
 
 
@@ -102,8 +98,6 @@ check_success() {
 
 # compiles one .bs file into an executable 
 compile_one_test() {
-    make
-    echo $1
     ./toplevel.native < "tests/$1.bs" > $1.llvm
     check_success $?
     llc "-relocation-model=pic" $1.llvm 
@@ -114,114 +108,103 @@ compile_one_test() {
 }
 
 
-
-clean_up() {
-    if [ $# -eq 3 ] 
-    then
-        if [ -z $2 ] 
-        then 
-            if [ $2 = "-keepc" ] 
-            then 
-                echo "Keeping intermediate compiler files..." 
-            else 
-                echo "Invalid flag $2"
-                Usage 
-            fi 
-        else
-            echo "Removing .s, .llvm, and .exe files made from $1\n"
-                rm $1.llvm 
-                rm $1.llvm.s
-                rm $1.exe
-        fi 
-
-
-        if [ -z $3 ] 
-        then 
-            if [ $3 = "-keept" ] 
-            then 
-                echo "Keeping intermediate testing files..." 
-            else 
-                echo "Invalid flag $3"
-                Usage 
-            fi 
-        else 
-            echo "Removing .out and .diff files from $1\n"
-            rm $1.out 
-            rm $1.diff
-        fi 
-    else 
-        # clean all files 
-        if [ -z $1 ] 
-        then 
-            if [ $1 = "-keepc" ] 
-            then 
-                echo "Keeping intermediate compiler files..." 
-            else 
-                echo "Invalid flag $1"
-                Usage 
-            fi 
-        else
-            echo "Removing all .s, .llvm, and .exe files\n"
-            make clean_exes
-            make clean_intermediates
-        fi 
-
-
-        if [ -z $2 ] 
-        then 
-            if [ $2 = "-keept" ] 
-            then 
-                echo "Keeping intermediate testing files..." 
-            else 
-                echo "Invalid flag $2"
-                Usage 
-            fi 
-        else 
-            echo "Removing .out and .diff files\n"
-            make clean_tests
-        fi 
-    fi 
-}
-
-
 run_single_test() {
     testname=$1
-    echo "RUNNING TEST ${testname}......"
     testpath="tests/$testname.bs"
-    make # compiles compiler
+    if [ ! -f $testpath ]
+    then 
+        echo "File $testpath doesn't exist" 
+        return 
+    fi 
+    
     compile_one_test $testname
     output="$testname.exe"
-    echo $output
+        echo "RUNNING TEST ${testname}......"
     ./$output > $testname.out
 
-    # might be wrong 
     gst="tests/gsts/$testname.gst"
-    if [ -f $gst ] 
+    touch $gst
+    ls > $gst
+    if [ ! -f $gst ] 
     then 
+        echo "File $gst does not exist" 
+        return
+    else 
         diff $testname.out $gst > $testname.diff
-            if [ -s $testname.diff ]; then
+        if [ -s $testname.diff ]; then
                 echo "ERROR: OUTPUT FOR $testname DOES NOT MATCH EXPECTED OUTPUT \n "
                 cat $testname.diff
             else
                 echo "PASSED \n"
         fi
-    else 
-        echo "File $gst does not exist" 
+
     fi 
 }
 
 
 run_all_tests() {
-    # get all test names 
+    # get all test names
+
+    echo "ABOUT TO RUN ${#tests[@]} TESTS....."
     for test in $tests
     do
-      run_single_test test
+      name=${test%.*}
+      run_single_test $name
     done
     for test in $fail_tests
     do
-      run_single_test test
+      name=${test::-3}
+      run_single_test $name
     done
     # for each test name call run single test on it 
+}
+
+# Given a dummy string, a file name, and potentially two flags, 
+# clean up the intermediate files and keep ones specified by the flags. 
+# see Usage function to get flag specifications.
+clean_up() {
+    if [ $# -eq 2 ]
+    then # just file name was passed in 
+        echo "Removing all intermediate files created by $2 (.s, .llvm, .exe, .out, and .diff)..."
+        rm $2.llvm
+        rm $2.llvm.s
+        rm $2.exe
+        rm $2.out 
+        rm $2.diff
+    else
+        keepc=false
+        keept=false 
+
+        if [[ $3 = "-keept" ]] || [[ $4 = "-keept" ]] 
+        then
+            keept=true 
+        fi 
+
+        if [[ $4 = "-keepc" ]] || [[ $3 = "-keepc" ]]
+        then
+            keepc=true 
+        fi 
+
+        if [ "$keepc" = true ] 
+        then 
+            echo "Keeping intermediate compiler files..." 
+        else
+            echo "Removing all .s, .llvm, and .exe files created by $2..."
+            rm $2.llvm
+            rm $2.llvm.s
+            rm $2.exe
+        fi
+        
+        if [ "$keept" = true ] 
+        then 
+            echo "Keeping intermediate testing files..." 
+        else
+            echo "Removing all .out and .diff files created by $2..."
+            rm $2.out
+            rm $2.diff
+        fi 
+    fi
+    echo "Done. Bye!"
 }
 
 
@@ -231,10 +214,54 @@ if [ $# -lt 1 ]
     Usage
 fi
 
+echo "Making...."
+make
+
+
 # -a runs all tests
 if [ $1 = "-a" ]
     then 
     run_all_tests
+    if [ $# -eq 1 ]
+    then 
+        echo "Removing all intermediate outputs (.s, .llvm, .exes, .out, and .diff) files..."
+        make clean_intermediates
+        make clean_tests
+        make clean_exes
+        echo "Done. Bye!"
+    else 
+        keepc=false
+        keept=false 
+
+        if [[ $2 = "-keept" ]] || [[ $3 = "-keept" ]] 
+        then
+            keept=true 
+        fi 
+
+        if [[ $2 = "-keepc" ]] || [[ $3 = "-keepc" ]]
+        then
+            keepc=true 
+        fi 
+
+        if [ "$keepc" = true ] 
+        then 
+            echo "Keeping intermediate compiler files..." 
+        else
+            echo "Removing all .s, .llvm, and .exe files..."
+            make clean_intermediates
+            make clean_exes
+        fi
+        
+        if [ "$keept" = true ] 
+        then 
+            echo "Keeping intermediate testing files..." 
+        else
+            echo "Removing all .out and .diff files created..."
+            make clean_tests
+        fi 
+        echo "Done. Bye!"
+    fi 
+        
     exit
 fi 
 
@@ -243,9 +270,12 @@ if [ $1 = "-s" ]
     then
     # $2 is the file name 
     run_single_test $2
-    clean_up $2 $3 $4
+    clean_up "dummy" $2 $3 $4
     exit
 fi 
+
+Usage
+
 
 # keep intermediatery tests
 

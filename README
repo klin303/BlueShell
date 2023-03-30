@@ -25,6 +25,7 @@ To keep intermediate output files produced during compilation (.s and .llvm file
 To keep intermediate output files produced during testing (.out and .diff files):
 ./testall.sh -a -keept
 
+
 *** Interpreting Testing Results ***
 The testall script validates that a BlueShell program succeeds at every step of
 compilation. 
