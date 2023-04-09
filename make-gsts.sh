@@ -16,6 +16,7 @@ fail_tests=$(Make print_failtests)
 test_dir="tests/"
 gsts_dir="tests/gsts/"
 
+
 if [ "$#" -eq 0 ]; then
     for test in $tests 
     do 
@@ -27,7 +28,7 @@ if [ "$#" -eq 0 ]; then
             continue;
         fi
         gold_standard="${gsts_dir}test-${test}.gst"
-        ./toplevel.native < $file_name > $gold_standard
+        # run the command and shit 
     done 
 
 
@@ -41,7 +42,7 @@ if [ "$#" -eq 0 ]; then
             continue;
         fi
         gold_standard="${gsts_dir}fail-${ftest}.gst"
-        ./toplevel.native < $file_name 2> $gold_standard
+        # run the right thing ..? 
     done
     exit
     
@@ -64,9 +65,9 @@ elif [ "$#" -eq 2 ]; then
 
         # if fail, get from stderr. Else if regular, get output from stdout 
         if [ "$2" = "fail" ]; then 
-            ./toplevel.native < $file_name 2> $gold_standard
+            # run the right thing 
         else 
-            ./toplevel.native < $file_name > $gold_standard
+            # run the right 
         fi 
     else
         echo "Type must be test or fail"

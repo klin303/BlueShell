@@ -72,11 +72,11 @@ print_files:
 
 #removes .out and .diff files produced by the testing script
 clean_tests:
-	rm -rf *.diff *.out
+	rm -rf tests/diff/*.diff tests/out/*.out
 
 # removes .exes produced 
 clean_exes:
 	rm -rf *.exes
 		
 clean_intermediates:
-		rm -rf *.s *.llvm
+	rm -rf *.s *.llvm

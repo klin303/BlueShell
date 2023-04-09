@@ -3,6 +3,8 @@
 # 
 tests=$(make print_succtests)
 fail_tests=$(make print_failtests)
+base_dir="tests/"
+
 
 Usage() {
     echo "Usage: ./testall.sh [-a | -s <testname>] [-keept] [-keepc] \n
@@ -31,6 +33,10 @@ run_gsts_tests()
     echo "Making top level:"
     make clean
     make toplevel.native
+    echo "Going into the test directory ...." 
+    cd $base
+
+    
 
     echo "\n"
     echo "\n"
@@ -39,10 +45,10 @@ run_gsts_tests()
     for test in $tests
     do
         echo "Running test $test........"
-        file_name="tests/test-${test}.bs"
-        gold_standard="tests/test-${test}.gst"
-        ./toplevel.native < $file_name > "$test.tsout"
-        diff "$test.tsout" $gold_standard > $test.diff
+        file_name="test-${test}.bs"
+        gold_standard="test-${test}.gst"
+        ./toplevel.native < $file_name > "out/$test.out"
+        diff "$test.tsout" $gold_standard > "diff/$test.diff"
         if [ -s $test.diff ]; then
             echo "\nERROR: AST FOR ${test} DOES NOT MATCH GSAST\n\n"
             cat $test.diff
@@ -61,10 +67,10 @@ run_gsts_tests()
     for ftest in $fail_tests
     do
         echo "Running failure test $ftest............"
-        file_name="tests/fail-${ftest}.bs"
-        fail_standard="tests/fail-${ftest}.gst"
-        ./toplevel.native < $file_name 2> "$ftest.tsout"
-        diff "$ftest.tsout" $fail_standard > $ftest.diff
+        file_name="fail-${ftest}.bs"
+        fail_standard="fail-${ftest}.gst"
+        ./toplevel.native < $file_name 2> "out/$test/ftest.out"
+        diff "$ftest.out" $fail_standard > "diff/$test.diff"
         if [ -s $ftest.diff ]; then
             echo "ERROR: OUTPUT FOR ${ftest} DOES NOT MATCH EXPECTED OUTPUT \n "
             cat $ftest.diff
@@ -74,7 +80,7 @@ run_gsts_tests()
 
     done
 
-    echo "removing .tsout and .diff files created:"
+    echo "removing .out and .diff files created:"
 
     make clean_tests
     echo "\n"
@@ -105,35 +111,44 @@ compile_one_test() {
     cc -c exec.c # links with our c file
     cc $1.llvm.s exec.o -o $1.exe
     check_success $?
+    cp $1.exe tests/
+    cd tests
 }
 
 
 run_single_test() {
     testname=$1
-    testpath="tests/$testname.bs"
+    testpath="$testname.bs"
+    cd tests
     if [ ! -f $testpath ]
     then 
         echo "File $testpath doesn't exist" 
         return 
     fi 
+    cd ../
+    # we're in top dir
     
     compile_one_test $testname
+    # we're in tests/
+    # copy exe into testing directory
     output="$testname.exe"
         echo "RUNNING TEST ${testname}......"
-    ./$output > $testname.out
+    ./$output > "out/$testname.out"
+    # delete the executable 
+    pwd
+    rm $output
 
-    gst="tests/gsts/$testname.gst"
-    touch $gst
-    ls > $gst
+    #compare with gst
+    gst="gsts/$testname.gst"
     if [ ! -f $gst ] 
     then 
         echo "File $gst does not exist" 
         return
     else 
-        diff $testname.out $gst > $testname.diff
-        if [ -s $testname.diff ]; then
+        diff "out/$testname.out" $gst > "diff/$testname.diff"
+        if [ -s "diff/$testname.diff" ]; then
                 echo "ERROR: OUTPUT FOR $testname DOES NOT MATCH EXPECTED OUTPUT \n "
-                cat $testname.diff
+                cat "diff/$testname.diff"
             else
                 echo "PASSED \n"
         fi
@@ -213,15 +228,15 @@ if [ $# -lt 1 ]
     then 
     Usage
 fi
-
+ 
 echo "Making...."
 make
-
 
 # -a runs all tests
 if [ $1 = "-a" ]
     then 
     run_all_tests
+    cd ../
     if [ $# -eq 1 ]
     then 
         echo "Removing all intermediate outputs (.s, .llvm, .exes, .out, and .diff) files..."
@@ -270,6 +285,7 @@ if [ $1 = "-s" ]
     then
     # $2 is the file name 
     run_single_test $2
+    cd ../
     clean_up "dummy" $2 $3 $4
     exit
 fi 
