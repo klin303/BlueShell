@@ -61,6 +61,26 @@ let check (stmts, functions) =
 
   in
 
+
+  (* Add function name to symbol table *)
+  let add_func map fd =
+    let dup_err = "duplicate function " ^ fd.fname
+    and make_err er = raise (Failure er)
+    and n = fd.fname (* Name of the function *)
+    in match fd with (* No duplicate functions or redefinitions of built-ins *)
+        _ when StringMap.mem n map -> make_err dup_err
+       | _ ->  StringMap.add n fd map
+  in
+
+  (* Collect all other function names into one symbol table *)
+  let function_decls = List.fold_left add_func StringMap.empty functions
+  in
+
+  let find_func s =
+    try StringMap.find s function_decls
+    with Not_found -> raise (Failure ("unrecognized function " ^ s))
+  in
+
   let rec expr (curr_symbol_table : symbol_table) expression =
   match expression with
     Literal l     -> (curr_symbol_table, (Int, SLiteral l))
@@ -79,7 +99,12 @@ let check (stmts, functions) =
           List_type String -> (curr_symbol_table, (Exec, (SExec ((ty1, e1'), (ty2, e2')))))
           | _ -> raise (Failure ("args must be a list of string")))
       | _ -> raise (Failure ("path must be a string")))
-  | Index(e1, e2) -> raise (Failure ("not yet implemented index"))
+  | Index(e1, e2) ->
+    let (_, (ty1, e1')) = expr curr_symbol_table e1 in
+    let (_, (ty2, e2')) = expr curr_symbol_table e2 in
+    (match (ty1, ty2) with
+      (List_type ty, Int) -> (curr_symbol_table, (ty, (SIndex ((ty1, e1'), (ty2, e2')))))
+      | _ -> raise (Failure ("Indexing takes a list and integer")))
   | Binop(e1, op, e2) ->
     let (symbol_table', (ty2, e2')) = expr curr_symbol_table e2
     in let (symbol_table'', (ty1, e1')) = expr symbol_table' e1 in
@@ -171,7 +196,20 @@ let check (stmts, functions) =
     let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^
       string_of_typ rt ^ " in " ^ string_of_expr ex
     in (curr_symbol_table, (check_assign lt rt err, SAssign(var, (rt, e'))))
-  | Call(fname, args) -> raise (Failure ("not yet implemented call"))
+  | Call(fname, args) as call ->
+          let fd = find_func fname in
+          let param_length = List.length fd.formals in
+          if List.length args != param_length then
+            raise (Failure ("expecting " ^ string_of_int param_length ^
+                            " arguments in " ^ string_of_expr call))
+          else let check_call (ft, _) e =
+            let (_, (et, e')) = expr curr_symbol_table e in
+            let err = "illegal argument found " ^ string_of_typ et ^
+              " expected " ^ string_of_typ ft ^ " in " ^ string_of_expr e
+            in (check_assign ft et err, e')
+          in
+          let args' = List.map2 check_call fd.formals args
+          in (curr_symbol_table, (fd.typ, SCall(fname, args')))
   | List expr_list ->
     let rec check_list (exprs : expr list) curr_symbol_table =
       match exprs with

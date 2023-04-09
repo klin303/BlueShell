@@ -29,5 +29,5 @@ int execvp_helper(char *path, char *arguments[]) {
         int wpid = wait(&status);
         // printf("exit code: %d\n", WEXITSTATUS(status));
 
-    return rc;
+    return status;
 }
