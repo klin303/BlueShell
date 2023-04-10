@@ -38,10 +38,27 @@ let check (stmts, functions) =
         in to_check
   in *)
 
+  let check_arg_types is_valid args1 args2  = is_valid && (args1 = args2)
+  in
+
   (* Raise an exception if the given rvalue type cannot be assigned to
        the given lvalue type *)
   let check_assign lvaluet rvaluet err =
-    if lvaluet = rvaluet then lvaluet else raise (Failure err)
+    (match (lvaluet, rvaluet) with
+      (List_type _, EmptyList) -> lvaluet
+      | (List_type ty1, List_type ty2) -> (match ty1 = ty2 with
+          true -> List_type ty1
+          | false -> raise (Failure err))
+      | (Function (args1, ret1), Function (args2, ret2)) -> (match ret1 = ret2 with
+          true -> (match (List.fold_left2 check_arg_types true args1 args2 ) with
+                  true -> Function (args1, ret1)
+                  | false -> raise (Failure err))
+          | false -> raise (Failure err))
+      | _ -> (match lvaluet = rvaluet with
+              true -> lvaluet
+            | false -> raise (Failure err)))
+
+    (* if lvaluet = rvaluet then lvaluet else raise (Failure err) *)
   in
 
   let rec type_of_identifier (scope : symbol_table) name =
@@ -150,7 +167,8 @@ let check (stmts, functions) =
                     | false -> raise (Failure ("types of binops must match")))
       | Cons ->
                     (match ty2 with
-                      EmptyList -> (symbol_table'', (SList))
+                      EmptyList -> (symbol_table'', (List_type ty1, SBinop((ty1, e1'), op,
+                        (ty2, e2'))))
                      | List_type ty  -> let same = ty = ty1 in
                         (match same with
                         true -> (symbol_table'', (ty2, SBinop((ty1, e1'), op,
@@ -169,20 +187,23 @@ let check (stmts, functions) =
       Run ->
               (match ty1 with
                 Exec -> (curr_symbol_table, (String, SPreUnop (Run, (ty1, e1)))) (* what do we put here*)
-                | _ -> raise (Failure ("Run takes type executable")))
-    | Neg -> (match ty1 with
+              | _ -> raise (Failure ("Run takes type executable")))
+    | Neg ->
+              (match ty1 with
                 Int | Float | List_type _ -> (curr_symbol_table, (ty1, SPreUnop (Neg, (ty1, e1)))) (* what do we put here*)
-                | _ -> raise (Failure ("Negation takes an interger, float, or list")))
+              | _ -> raise (Failure ("Negation takes an interger, float, or list")))
     | Length ->
               (match ty1 with
-                List_type _ -> (curr_symbol_table, (Int, SPreUnop (Length, (ty1,e1))))
+                EmptyList | List_type _ -> (curr_symbol_table, (Int, SPreUnop (Length,(ty1,e1))))
               | _ -> raise (Failure ("Length takes a list")))
-    | Path -> (match ty1 with
+    | Path ->
+              (match ty1 with
                 Exec -> (curr_symbol_table, (String, SPreUnop (Path, (ty1, e1)))) (* what do we put here*)
-                | _ -> raise (Failure ("Run takes type executable")))
-    | Not -> (match ty1 with
+              | _ -> raise (Failure ("Run takes type executable")))
+    | Not ->
+              (match ty1 with
                 Bool -> (curr_symbol_table, (Bool, SPreUnop (Not, (ty1, e1)))) (* what do we put here*)
-                | _ -> raise (Failure ("Boolean negation takes a boolean")))
+              | _ -> raise (Failure ("Boolean negation takes a boolean")))
     | _ -> raise (Failure ("other preunops not implemented yet")))
   | PostUnop(e, op)   ->
     let (_, (ty1, e1)) = expr curr_symbol_table e in
@@ -224,7 +245,7 @@ let check (stmts, functions) =
       elem'
     in
     (match expr_list with
-      [] -> (curr_symbol_table, (List_type String, SList([])))
+      [] -> (curr_symbol_table, (EmptyList, SList([])))
     | elem :: elems -> let (_, elem') = expr curr_symbol_table elem in
       match (check_list elems curr_symbol_table) with
         true -> (curr_symbol_table, (List_type (fst elem'), SList(List.map expr_to_sexpr expr_list)))
@@ -232,7 +253,6 @@ let check (stmts, functions) =
     )
 
   | Bind bind -> (add_bind curr_symbol_table bind, (fst bind, SBind bind))
-  (* | Bind(bind) -> raise (Failure ("bind")) *)
   | Noexpr      -> (curr_symbol_table, (Void, SNoexpr))
 
   in

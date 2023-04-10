@@ -11,10 +11,10 @@ let digits = digit+
 rule tokenize = parse
   [' ' '\t' '\r' '\n'] { tokenize lexbuf }
 (* comments *)
-| "/*"       { multiline_comment lexbuf } 
+| "/*"       { multiline_comment lexbuf }
 | "//"       { singleline_comment lexbuf }
 (* structural tokens *)
-| '('        { LPAREN }         
+| '('        { LPAREN }
 | ')'        { RPAREN }
 | '{'        { LBRACE }
 | '}'        { RBRACE }
@@ -26,13 +26,13 @@ rule tokenize = parse
 | "<"        { LANGLE }
 | ">"        { RANGLE }
 (* arithmetic symbols *)
-| '+'        { PLUS }       
+| '+'        { PLUS }
 | '-'        { MINUS }
 | '*'        { TIMES }
 | '/'        { DIVIDE }
 | '='        { ASSIGN }
 (* boolean operators *)
-| "and"      { AND }        
+| "and"      { AND }
 | "&&"       { AND }
 | "or"       { OR }
 | "||"       { OR }
@@ -45,13 +45,13 @@ rule tokenize = parse
 | ">="       { GEQ }
 | "<="       { LEQ }
 (* stmts *)
-| "if"       { IF }            
+| "if"       { IF }
 | "else"     { ELSE }
 | "for"      { FOR }
 | "while"    { WHILE }
 | "return"   { RETURN }
 (* types *)
-| "int"      { INT }      
+| "int"      { INT }
 | "bool"     { BOOL }
 | "float"    { FLOAT }
 | "void"     { VOID }
@@ -63,17 +63,19 @@ rule tokenize = parse
 | "false"    { BLIT(false) }
 | "function" { FUNCTION }
 (* executable operators *)
-| "|"        { PIPE }      
+| "|"        { PIPE }
 | "./"       { RUN }
 | "?"        { EXITCODE }
 | "$"        { PATH }
 | "withargs" { WITHARGS }
 (* list operators *)
-| '['        { LBRACKET }  
+| '['        { LBRACKET }
 | ']'        { RBRACKET }
 | "::"       { CONS }
 | "len"      { LEN }
 | "of"       { OF }
+(* first-class function operators *)
+| "->"       { ARROW }
 | digits as lxm { LITERAL(int_of_string lxm) }
 | digits '.'  digit* as lxm { FLIT(lxm) }
 | ['A'-'Z' 'a'-'z']['A'-'Z' 'a'-'z' '0'-'9' '_']* + as lit { ID(lit) }

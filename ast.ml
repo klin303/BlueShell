@@ -13,7 +13,8 @@ type index = Index
 type uop = Neg | Not | ExitCode | Run | Path | Length
 
 (* types *)
-type typ = Int | Bool | Float | Void | Exec | Char | String | List_type of typ | Function | EmptyList
+type typ = Int | Bool | Float | Void | Exec | Char | String | List_type of typ |
+           EmptyList | Function of (typ list * typ)
 
 (* bind sets a variable name to a type *)
 type bind = typ * string
@@ -98,7 +99,8 @@ let rec string_of_typ = function
   | Char ->       "char"
   | String ->     "string"
   | List_type(t) ->    "list of " ^ string_of_typ t
-  | Function ->   "func"
+  | Function(args, ret) ->   "function ("  ^ String.concat " -> " (List.map
+  string_of_typ (List.rev (ret :: (List.rev args)))) ^ ")"
   | EmptyList ->  "emptylist"
 
 let string_of_vdecl (t, id) = string_of_typ t ^ " " ^ id

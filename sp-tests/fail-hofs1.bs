@@ -1,0 +1,4 @@
+
+
+int hello(function () foo) { return foo('c', "hi"); }
+

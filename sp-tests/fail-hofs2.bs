@@ -1,0 +1,1 @@
+int hello(function (int ->) foo) { return foo('c', "hi"); }

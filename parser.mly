@@ -4,7 +4,8 @@
 
 %{ open Ast %}
 
-%token SEMI LPAREN RPAREN LBRACE RBRACE COMMA LBRACKET RBRACKET AMPERSAND LANGLE RANGLE OF /* structural tokens */
+%token SEMI LPAREN RPAREN LBRACE RBRACE COMMA LBRACKET RBRACKET AMPERSAND LANGLE
+RANGLE OF ARROW/* structural tokens */
 %token PLUS MINUS TIMES DIVIDE ASSIGN /* type operators */
 %token AND OR NOT /* logical operators */
 %token GT LT EQ GEQ LEQ NEQ /* comparisons */
@@ -59,8 +60,14 @@ typ:
   | CHR             { Char     }
   | STR             { String   }
   | LIST OF typ     { List_type($3) }
-  | FUNCTION        { Function }
+  | FUNCTION formals_type      { Function($2) }
 
+formals_type:
+  LPAREN cont_formal_list { $2 }
+
+cont_formal_list:
+  typ RPAREN {([], $1)}
+| typ ARROW cont_formal_list {( $1 :: (fst $3), snd $3)}
 /* Executables */
 exec:
   LANGLE expr WITHARGS expr RANGLE  { Exec($2, $4) }
