@@ -1,0 +1,7 @@
+list of int ls = [1 , 2];
+ls = 1 :: ls;
+
+ls = 2 :: ls;
+
+list of string strs = ["1"];
+"2" :: strs;

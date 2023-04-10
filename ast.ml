@@ -4,7 +4,7 @@
 
 (* general binary operators *)
 type op = Add | Sub | Mult | Div | Equal | Neq | Less | Leq | Greater | Geq |
-          And | Or | Pipe | Cons | ExprAssign 
+          And | Or | Pipe | Cons | ExprAssign
 
 (* index has a special type because of its formatting *)
 type index = Index
@@ -13,7 +13,7 @@ type index = Index
 type uop = Neg | Not | ExitCode | Run | Path | Length
 
 (* types *)
-type typ = Int | Bool | Float | Void | Exec | Char | String | List_type of typ | Function
+type typ = Int | Bool | Float | Void | Exec | Char | String | List_type of typ | Function | EmptyList
 
 (* bind sets a variable name to a type *)
 type bind = typ * string
@@ -99,6 +99,7 @@ let rec string_of_typ = function
   | String ->     "string"
   | List_type(t) ->    "list of " ^ string_of_typ t
   | Function ->   "func"
+  | EmptyList ->  "emptylist"
 
 let string_of_vdecl (t, id) = string_of_typ t ^ " " ^ id
 
@@ -110,7 +111,7 @@ let rec string_of_expr = function
   | Id(s) ->          s
   | Char(c) ->        "'" ^ c ^ "'"
   | String(s) ->      "\"" ^ s ^ "\""
-  | Exec(e1, e2) ->   
+  | Exec(e1, e2) ->
       "<" ^ string_of_expr e1 ^ " withargs " ^ string_of_expr e2 ^ ">"
   | Binop(e1, o, e2) ->
       string_of_expr e1 ^ " " ^ string_of_op o ^ " " ^ string_of_expr e2
@@ -120,7 +121,7 @@ let rec string_of_expr = function
   | Call(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
   | List(l) ->        "[" ^ (String.concat ", " (List.map string_of_expr l)) ^ "]"
-  | Index(list, index) -> 
+  | Index(list, index) ->
       string_of_expr list ^ "[" ^ string_of_expr index ^ "]"
   | Bind(var) ->      string_of_vdecl var
   | Noexpr ->         ""
@@ -130,10 +131,10 @@ let rec string_of_stmt = function
       "{\n" ^ String.concat "" (List.map string_of_stmt stmts) ^ "}\n"
   | Expr(expr) ->     string_of_expr expr ^ ";\n";
   | Return(expr) ->   "return " ^ string_of_expr expr ^ ";\n";
-  | If(e, s, Block([])) -> 
+  | If(e, s, Block([])) ->
       "if (" ^ string_of_expr e ^ ")\n" ^ string_of_stmt s
-  | If(e, s1, s2) ->  
-      "if (" ^ string_of_expr e ^ ")\n" ^ 
+  | If(e, s1, s2) ->
+      "if (" ^ string_of_expr e ^ ")\n" ^
       string_of_stmt s1 ^ "else\n" ^ string_of_stmt s2
   | For(e1, e2, e3, s) ->
       "for (" ^ string_of_expr e1  ^ " ; " ^ string_of_expr e2 ^ " ; " ^

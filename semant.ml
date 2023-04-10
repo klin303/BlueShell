@@ -109,7 +109,7 @@ let check (stmts, functions) =
     let (symbol_table', (ty2, e2')) = expr curr_symbol_table e2
     in let (symbol_table'', (ty1, e1')) = expr symbol_table' e1 in
     (match op with
-      ExprAssign -> 
+      ExprAssign ->
                     let same = ty2 = ty1 in
                     let ty = match e1' with
                       SBind b when same ->  fst b
@@ -150,7 +150,8 @@ let check (stmts, functions) =
                     | false -> raise (Failure ("types of binops must match")))
       | Cons ->
                     (match ty2 with
-                      List_type ty  -> let same = ty = ty1 in
+                      EmptyList -> (symbol_table'', (SList))
+                     | List_type ty  -> let same = ty = ty1 in
                         (match same with
                         true -> (symbol_table'', (ty2, SBinop((ty1, e1'), op,
                         (ty2, e2'))))

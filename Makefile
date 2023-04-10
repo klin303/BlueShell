@@ -60,6 +60,10 @@ bostonbitpackers.zip : $(ZIPFILES)
 	zip bostonbitpackers.zip $(ZIPFILES)
 
 # prints the list of tests which should pass
+TESTNAMES =$(TESTS:%.bs)
+
+FAILTESTS =$(FAILES:%.bs)
+
 print_succtests:
 	@echo $(TESTS)
 
@@ -74,9 +78,9 @@ print_files:
 clean_tests:
 	rm -rf tests/diff/*.diff tests/out/*.out
 
-# removes .exes produced 
+# removes .exes produced
 clean_exes:
 	rm -rf *.exes
-		
+
 clean_intermediates:
 	rm -rf *.s *.llvm

@@ -63,21 +63,8 @@ typ:
 
 /* Executables */
 exec:
-  LANGLE expr WITHARGS expr RANGLE  { Exec($2, $4) } 
-| LANGLE expr RANGLE  { Exec($2, List([])) } 
-
-
-// path:
-//   ID                { Id($1) }
-//   | STRING          { String($1) }
-
-// eargs_list:
-//   LBRACE cont_eargs_list  { $2 }
-//   | LBRACE RBRACE         { [] }
-
-// cont_eargs_list:
-//   expr COMMA cont_eargs_list    { $1 :: $3 }
-//   | expr RBRACE                 { [$1] }
+  LANGLE expr WITHARGS expr RANGLE  { Exec($2, $4) }
+| LANGLE expr RANGLE  { Exec($2, List([])) }
 
 /* Lists */
 list:

@@ -4,13 +4,13 @@
 # UNLESS WE, BLUESHELL, AS A GROUP, HAVE DECIDED ON SWITCHING OUR SYNTAX TO SOMETHING DIFFERENT,
 # *****DO NOT RUN THIS SCRIPT***** unless you want to create new gold standard ASTs
 
-# It creates new gold standards, both errors and ASTs for our compiler. 
+# It creates new gold standards, both errors and ASTs for our compiler.
 
-# if [[ -e $# 0 ]]; then 
+# if [[ -e $# 0 ]]; then
 #     echo "no args"
-# elif [[ -e $# 1 ]]; then 
+# elif [[ -e $# 1 ]]; then
 #     echo $1
-# fi 
+# fi
 tests=$(Make print_succtests)
 fail_tests=$(Make print_failtests)
 test_dir="tests/"
@@ -18,44 +18,45 @@ gsts_dir="tests/gsts/"
 
 
 if [ "$#" -eq 0 ]; then
-    for test in $tests 
-    do 
-        echo "Making goldstandard for test $test........\n"
-        file_name="${test_dir}test-${test}.bs"
+    for test in $tests
+    do
+        echo "Making gold standard for test $test........\n"
+        file_name="${test_dir}${test}"
+        cat $file_name
         # echo $gold_standard
-        if [ ! -f $file_name ]; then 
+        if [ ! -f $file_name ]; then
             echo "****ALERT***** Test $test doesn't exist\n\n\n\n"
             continue;
         fi
         gold_standard="${gsts_dir}test-${test}.gst"
-        # run the command and shit 
-    done 
+        ./toplevel.native -s < $file_name 2> "$test.gst"
+    done
 
 
     # cringe fail test compilation
     for ftest in $fail_tests
-    do 
+    do
         echo "Making goldstandard for fail test $ftest.............\n"
         file_name="${test_dir}fail-${ftest}.bs"
-        if [ ! -f $file_name ]; then 
+        if [ ! -f $file_name ]; then
             echo "****ALERT***** Test $ftest doesn't exist\m\n\n\n"
             continue;
         fi
         gold_standard="${gsts_dir}fail-${ftest}.gst"
-        # run the right thing ..? 
+        ./toplevel.native -s < $file_name 2> "$ftest.gst"
     done
     exit
-    
 
-elif [ "$#" -eq 2 ]; then 
-    if [ "$2" = "fail" ] || [ "$2" = "test" ]; then 
+
+elif [ "$#" -eq 2 ]; then
+    if [ "$2" = "fail" ] || [ "$2" = "test" ]; then
         test_name=$1
         type=$2
         echo "Making gst for $type-$test_name........\n"
         file_name="${test_dir}${type}-${test_name}.bs"
 
-        # check if file exists 
-        if [ ! -f $file_name ]; then 
+        # check if file exists
+        if [ ! -f $file_name ]; then
             echo "****ALERT***** Test $test_name doesn't exist\m\n\n\n"
             exit
         fi
@@ -63,16 +64,16 @@ elif [ "$#" -eq 2 ]; then
 
         gold_standard="${test_dir}${type}-${test_name}.gst"
 
-        # if fail, get from stderr. Else if regular, get output from stdout 
-        if [ "$2" = "fail" ]; then 
-            # run the right thing 
-        else 
-            # run the right 
-        fi 
+        # if fail, get from stderr. Else if regular, get output from stdout
+        if [ "$2" = "fail" ]; then
+            ./toplevel.native -s < $file_name 2> "$file_name.gst"
+        else
+            ./toplevel.native -s < $file_name > "$file_name.gst"
+        fi
     else
         echo "Type must be test or fail"
     fi
-else 
+else
     echo "Usage: ./make-gsts.sh [test-name type] where type is either test or fail"
     exit
 fi
@@ -80,5 +81,5 @@ fi
 
 # echo "Making top level:"
 # make clean
-# make toplevel.native 
+# make toplevel.native
 
