@@ -1,0 +1,4 @@
+int lin(string s, exec c) { return 1; }
+
+function (string -> exec -> int) foo = lin;
+int x = foo("hi", <"ls">);

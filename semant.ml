@@ -57,8 +57,6 @@ let check (stmts, functions) =
       | _ -> (match lvaluet = rvaluet with
               true -> lvaluet
             | false -> raise (Failure err)))
-
-    (* if lvaluet = rvaluet then lvaluet else raise (Failure err) *)
   in
 
   let rec type_of_identifier (scope : symbol_table) name =
@@ -68,7 +66,7 @@ let check (stmts, functions) =
     with Not_found -> (* Try looking in outer blocks *)
       match scope.parent with
         Some(parent) -> type_of_identifier parent name
-      | _ -> raise (Failure ("here"))
+      | _ -> raise (Failure ("identifier not found"))
   in
 
   let add_bind (scope : symbol_table) (typ, name) =
@@ -218,9 +216,9 @@ let check (stmts, functions) =
     let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^
       string_of_typ rt ^ " in " ^ string_of_expr ex
     in (curr_symbol_table, (check_assign lt rt err, SAssign(var, (rt, e'))))
-  | Call(fname, args) as call ->
-          let fd = find_func fname in
-          let param_length = List.length fd.formals in
+  | Call(fname, args) as call -> raise (Failure (""))
+    (* (match find_func fname with
+      fd -> let param_length = List.length fd.formals in
           if List.length args != param_length then
             raise (Failure ("expecting " ^ string_of_int param_length ^
                             " arguments in " ^ string_of_expr call))
@@ -232,6 +230,21 @@ let check (stmts, functions) =
           in
           let args' = List.map2 check_call fd.formals args
           in (curr_symbol_table, (fd.typ, SCall(fname, args')))
+      | exception (Failure _) -> match type_of_identifier curr_symbol_table fname with
+          Function (args_typs, ret_typ) -> let param_length = List.length args_typs in
+          if List.length args != param_length then
+            raise (Failure ("expecting " ^ string_of_int param_length ^
+                            " arguments in " ^ string_of_expr call))
+          else let check_call (ft, _) e =
+            let (_, (et, e')) = expr curr_symbol_table e in
+            let err = "illegal argument found " ^ string_of_typ et ^
+              " expected " ^ string_of_typ ft ^ " in " ^ string_of_expr e
+            in (check_assign ft et err, e')
+          in
+          let args' = List.map2 check_call fd.formals args
+          in (curr_symbol_table, (fd.typ, SCall(fname, args')))
+          | exception (Failure _) -> raise (Failure ("function call with invalid name"))
+      ) *)
   | List expr_list ->
     let rec check_list (exprs : expr list) curr_symbol_table =
       match exprs with
