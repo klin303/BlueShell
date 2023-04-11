@@ -43,33 +43,51 @@ SPTESTS = $(shell find sp-tests -type f -name 'test*.bs' -exec basename {} \;)
 
 SPFAILS = $(shell find sp-tests -type f -name 'fail*.bs' -exec basename {} \;)
 
+# sast tests
+SAST_TESTS = $(shell find sast-tests -type f -name 'test*.bs' -exec basename {} \;)
+
+SAST_FAILS = $(shell find sast-tests -type f -name 'fail*.bs' -exec basename {} \;)
+
+
+SUCCSAST_NAMES = $(SAST_TESTS:%.bs=%)
+FAILSAST_NAMES = $(SAST_FAILS:%.bs=%)
+
+print_succsast:
+	@echo $(SUCCSAST_NAMES)
+
+print_failsast:
+	@echo $(FAILSAST_NAMES)
+
+
 # tests for codegen
 TESTS = $(shell find tests -type f -name 'test*.bs' -exec basename {} \;)
 
 FAILS = $(shell find tests -type f -name 'fail*.bs' -exec basename {} \;)
 
 TESTFILES = $(TESTS) $(TESTS:%.bs=gsts/%.gst) \
-						$(FAILS) $(FAILS:%.bs=gsts/%.gst)
+		$(FAILS) $(FAILS:%.bs=gsts/%.gst)
 
 ZIPFILES = ast.ml scanner.mll toplevel.ml parser.mly sast.ml semant.ml \
 		   codegen.ml _tags exec.c testall.sh compile.sh README Makefile \
 		   $(TESTFILES:%=tests/%)
+
 
 # zips files and tests together
 bostonbitpackers.zip : $(ZIPFILES)
 	zip bostonbitpackers.zip $(ZIPFILES)
 
 # prints the list of tests which should pass
-TESTNAMES =$(TESTS:%.bs)
 
-FAILTESTS =$(FAILES:%.bs)
+TESTNAMES = $(TESTS:%.bs=%)
+
+FAILTESTNAMES = $(FAILS:%.bs=%)
 
 print_succtests:
-	@echo $(TESTS)
+	@echo $(TESTNAMES)
 
 # prints the list of tests which should fail
 print_failtests:
-	@echo $(FAILS)
+	@echo $(FAILTESTNAMES)
 
 print_files:
 	@echo $(TESTFILES)

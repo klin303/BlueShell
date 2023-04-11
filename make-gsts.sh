@@ -16,6 +16,12 @@ fail_tests=$(Make print_failtests)
 test_dir="tests/"
 gsts_dir="tests/gsts/"
 
+### for sast 
+
+
+
+
+
 
 if [ "$#" -eq 0 ]; then
     for test in $tests
@@ -28,7 +34,7 @@ if [ "$#" -eq 0 ]; then
             echo "****ALERT***** Test $test doesn't exist\n\n\n\n"
             continue;
         fi
-        gold_standard="${gsts_dir}test-${test}.gst"
+        gold_standard="sast-tests/gsts/${test}.gst"
         ./toplevel.native -s < $file_name 2> "$test.gst"
     done
 
@@ -37,7 +43,7 @@ if [ "$#" -eq 0 ]; then
     for ftest in $fail_tests
     do
         echo "Making goldstandard for fail test $ftest.............\n"
-        file_name="${test_dir}fail-${ftest}.bs"
+        file_name="sast/gsts/${ftest}.bs"
         if [ ! -f $file_name ]; then
             echo "****ALERT***** Test $ftest doesn't exist\m\n\n\n"
             continue;
@@ -48,10 +54,8 @@ if [ "$#" -eq 0 ]; then
     exit
 
 
-elif [ "$#" -eq 2 ]; then
-    if [ "$2" = "fail" ] || [ "$2" = "test" ]; then
+elif [ "$#" -eq 1 ]; then
         test_name=$1
-        type=$2
         echo "Making gst for $type-$test_name........\n"
         file_name="${test_dir}${type}-${test_name}.bs"
 
