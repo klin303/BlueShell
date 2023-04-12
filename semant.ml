@@ -67,7 +67,7 @@ let check (stmts, functions) =
     with Not_found -> (* Try looking in outer blocks *)
       match scope.parent with
         Some(parent) -> type_of_identifier parent name
-      | _ -> raise (Failure ("identifier not found"))
+      | _ -> raise (Failure ("semant identifier not found"))
   in
 
   let add_bind (scope : symbol_table) (typ, name) =
@@ -123,6 +123,7 @@ let check (stmts, functions) =
         (match ty2 with
           (* !!!!!!!!CHANGE TO ACCEPT AUTOCASTING!!!!!!!!!!! *)
           List_type String -> (curr_symbol_table, (Exec, (SExec ((ty1, e1'), (ty2, e2')))))
+          | EmptyList -> (curr_symbol_table, (Exec, (SExec ((ty1, e1'), (List_type String, SList [])))))
           | _ -> raise (Failure ("args must be a list of string")))
       | _ -> raise (Failure ("path must be a string")))
   | Index(e1, e2) ->
@@ -134,47 +135,52 @@ let check (stmts, functions) =
   | Binop(e1, op, e2) ->
     let (symbol_table', (ty2, e2')) = expr curr_symbol_table e2
     in let (symbol_table'', (ty1, e1')) = expr symbol_table' e1 in
-    (match op with
-      ExprAssign ->
+    (match e2 with Bind _ -> raise (Failure "Bind cannot happen on left side of
+    binops")
+    | _ ->
+    (match (e1, op) with
+      (Bind b, ExprAssign) ->
                     let same = ty2 = ty1 in
                     let ty = match e1' with
                       SBind b when same ->  fst b
-                      | SId var when same -> type_of_identifier symbol_table'' var
+                      (* | SId var when same -> type_of_identifier symbol_table'' var *)
                       | _ -> raise (Failure ("invalid assignment"))
                     in (symbol_table'', (ty, SBinop((ty1, e1'), op, (ty2,
                     e2'))))
-      | Add | Mult ->
+      | (_, ExprAssign) | (Bind _, _) -> raise (Failure "Bind can only work with
+      ssignment and expression assignment only works with bind")
+      | (_, Add) | (_, Mult) ->
                     let same = ty2 = ty1 in
                     (match ty1 with
                       Int | Float | Exec when same -> (symbol_table'', (ty1, SBinop((ty1, e1'), op,
                       (ty2, e2'))))
                     | _ -> raise (Failure ("+ and * take two integers,
                     floats, or executables")))
-      | Sub | Div ->
+      | (_, Sub) | (_, Div) ->
                     let same = ty2 = ty1 in
                     (match ty1 with
                       Int | Float when same -> (symbol_table'', (ty1, SBinop((ty1, e1'), op,
                       (ty2, e2'))))
                     | _ -> raise (Failure ("Operator expected int or float")))
-      | Less | Leq | Greater | Geq ->
+      | (_, Less) | (_, Leq) | (_, Greater) | (_, Geq) ->
                     let same = ty2 = ty1 in
                     (match ty1 with
                       Int | Float when same -> (symbol_table'', (Bool, SBinop((ty1, e1'), op,
                       (ty2, e2'))))
                     | _ -> raise (Failure ("Operator expected int or float")))
-      | And | Or ->
+      | (_, And) | (_, Or) ->
                     let same = ty1 = ty2 in
                     (match ty1 with
                       Bool when same  -> (symbol_table'', (Bool, SBinop((ty1, e1'), op,
                       (ty2, e2'))))
                     | _ -> raise (Failure ("Boolean operators must take two booleans")))
-      | Equal | Neq ->
+      | (_, Equal) | (_, Neq) ->
                     let same = ty2 = ty1 in
                     (match same with
                     true -> (symbol_table'', (Bool, SBinop((ty1, e1'), op,
                               (ty2, e2'))))
                     | false -> raise (Failure ("types of binops must match")))
-      | Cons ->
+      | (_, Cons) ->
                     (match ty2 with
                       EmptyList -> (symbol_table'', (List_type ty1, SBinop((ty1, e1'), op,
                         (ty2, e2'))))
@@ -184,14 +190,17 @@ let check (stmts, functions) =
                         (ty2, e2'))))
                         | false -> raise (Failure ("lists are monomorphic")))
                     | _ -> raise (Failure ("Cons takes a list and primitive type")))
-      | Pipe ->
+      | (_, Pipe) ->
                     let same = ty2 = ty1 in
                     (match ty1 with
                       Exec when same -> (symbol_table'', (ty1, SBinop((ty1, e1'), op,
                       (ty2, e2'))))
-                    | _ -> raise (Failure ("Pipe expects two executables"))))
+                    | _ -> raise (Failure ("Pipe expects two executables")))))
   | PreUnop(op, e)    ->
     let (_, (ty1, e1)) = expr curr_symbol_table e in
+    (match e1 with
+    SBind _ -> raise (Failure "No bind can occur in a larger expression")
+    | _ ->
     (match op with
       Run ->
               (match ty1 with
@@ -213,35 +222,27 @@ let check (stmts, functions) =
               (match ty1 with
                 Bool -> (curr_symbol_table, (Bool, SPreUnop (Not, (ty1, e1)))) (* what do we put here*)
               | _ -> raise (Failure ("Boolean negation takes a boolean")))
-    | _ -> raise (Failure ("other preunops not implemented yet")))
+    | _ -> raise (Failure ("other preunops not implemented yet"))))
   | PostUnop(e, op)   ->
     let (_, (ty1, e1)) = expr curr_symbol_table e in
+    (match e1 with
+    SBind _ -> raise (Failure "No bind can occur in a larger expression")
+    | _ ->
     (match op with
       ExitCode -> (match ty1 with
                     Exec -> (curr_symbol_table, (Int, SPostUnop ((ty1, e1), ExitCode)))
                     | _ -> raise (Failure ("ExitCode takes type executable")))
-      | _ -> raise (Failure ("invalid postunop")))
+      | _ -> raise (Failure ("invalid postunop"))))
   | Assign(var, e) as ex ->
+    (match e with
+    Bind _ -> raise (Failure "No bind can occur in a larger expression")
+    | _ ->
     let lt = type_of_identifier curr_symbol_table var
     and (_, (rt, e')) = expr curr_symbol_table e in
     let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^
       string_of_typ rt ^ " in " ^ string_of_expr ex
-    in (curr_symbol_table, (check_assign lt rt err, SAssign(var, (rt, e'))))
+    in (curr_symbol_table, (check_assign lt rt err, SAssign(var, (rt, e')))))
   | Call(fname, args) as call ->
-    (* (match find_func fname with
-      fd -> let param_length = List.length fd.formals in
-          if List.length args != param_length then
-            raise (Failure ("expecting " ^ string_of_int param_length ^
-                            " arguments in " ^ string_of_expr call))
-          else let check_call (ft, _) e =
-            let (_, (et, e')) = expr curr_symbol_table e in
-            let err = "illegal argument found " ^ string_of_typ et ^
-              " expected " ^ string_of_typ ft ^ " in " ^ string_of_expr e
-            in (check_assign ft et err, e')
-          in
-          let args' = List.map2 check_call fd.formals args
-          in (curr_symbol_table, (fd.typ, SCall(fname, args')))) *)
-      (* | exception (Failure _) ->  *)
       (match type_of_identifier curr_symbol_table fname with
           Function (args_typs, ret_typ) ->
             let param_length = List.length args_typs in
@@ -261,9 +262,16 @@ let check (stmts, functions) =
   | List expr_list ->
     let rec check_list (exprs : expr list) curr_symbol_table =
       match exprs with
-      fst_elem :: snd_elem :: rest -> let (_, (ty1, _)) = expr curr_symbol_table fst_elem in let
-                                (_, (ty2, _)) = expr curr_symbol_table snd_elem in (ty1 = ty2 && check_list rest curr_symbol_table)
-      | fst_elem :: [] -> true
+      fst_elem :: snd_elem :: rest -> let (_, (ty1, e1)) = expr curr_symbol_table fst_elem in let
+                                (_, (ty2, e2)) = expr curr_symbol_table snd_elem
+                                in (match (e1, e2) with
+                                (SBind _, _) -> raise (Failure ("can't bind in a list"))
+                                | (_, SBind _) -> raise (Failure ("can't bind in a list"))
+                                | _ -> (ty1 = ty2 && check_list (snd_elem :: rest) curr_symbol_table))
+      | fst_elem :: [] -> let (_, (_, e1)) = expr curr_symbol_table fst_elem
+      in (match e1 with
+          SBind _ -> raise (Failure ("No binds in list"))
+          |_ -> true)
       | [] -> true
     in
     let expr_to_sexpr elem =

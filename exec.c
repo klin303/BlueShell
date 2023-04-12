@@ -8,7 +8,6 @@ Purpose: Forks and calls execvp on the path and arguments, interfacing with the 
 Arguments: char* representing path, char* array representing arguments
 */
 int execvp_helper(char *path, char *arguments[]) {
-        // printf("%s\n", path);
         int i = 0;
         while ((arguments[i]) != NULL) {
             i += 1;

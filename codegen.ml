@@ -10,6 +10,13 @@ open Sast
 
 module StringMap = Map.Make(String)
 
+type symbol_table = {
+  (* Variables bound in current block *)
+  variables : L.llvalue StringMap.t;
+  (* Enclosing scope *)
+  parent : symbol_table option;
+}
+
 (* building a string with const_stringz gets u the array type
    u can then build_malloc the type u get back *)
 
@@ -26,7 +33,7 @@ let translate (stmts, functions) =
   in
   let string_t   = L.pointer_type i8_t
   in
-  let list_t     = L.struct_type context [| L.pointer_type i8_t (* value *) ; L.pointer_type i8_t (* next*) |]
+  let list_t     = L.struct_type context [| L.pointer_type i8_t (* value *) ; L.pointer_type i32_t (* next*) |]
   in
   let exec_t     = L.struct_type context [| string_t (* path *) ; list_t (* args *) |]
   (* Create an LLVM module -- this is a "container" into which we'll
@@ -50,6 +57,8 @@ let translate (stmts, functions) =
   let execvp_func : L.llvalue =
      L.declare_function "execvp_helper" execvp_t the_module in
 
+  (* let *)
+
   (* the first blocks that appear in the program are the function declarations.
   What should we make the first block in our program for now  *)
   (* let main = L.const_stringz context "main" in *)
@@ -60,30 +69,37 @@ let translate (stmts, functions) =
     let builder = L.builder_at_end context (L.entry_block the_function) in *)
   let builder = L.builder_at_end context (L.entry_block main_func) in
   (*let exec : *)
-  let rec expr builder ((_, e) : sexpr) = match e with
-      SString s -> (*let string_ptr = *)L.build_global_stringptr s "" builder (*in
-                   let string = L.const_string context s in
-
-                   let _ = L.build_store string string_ptr builder in string_ptr*)(* first s is string
-      value to put in memory, second s is name *)
-                                              (* string name + list of args(can
-                                              empty ) *)
-    | SLiteral x -> L.const_int i32_t x
-    | SExec (e1, e2) -> (*let struct_wtf = L.const_struct context [| expr builder e1 ; expr builder e2 |] in*)
-                        let struct_space = L.build_malloc exec_t "" builder in
-
+  let rec lookup (curr_symbol_table : symbol_table) s =
+    try
+      (* Try to find binding in nearest block *)
+      StringMap.find s curr_symbol_table.variables
+    with Not_found -> (* Try looking in outer blocks *)
+      match curr_symbol_table.parent with
+        Some(parent) -> lookup parent s
+      | _ -> raise (Failure ("codegen identifier not found"))
+  in
+  let rec expr (curr_symbol_table : symbol_table) builder ((_, e) : sexpr) =
+    match e with
+      SString s -> (curr_symbol_table, L.build_global_stringptr s "" builder)
+    | SLiteral x -> (curr_symbol_table, L.const_int i32_t x)
+    | SExec (e1, e2) -> let struct_space = L.build_malloc exec_t "" builder in
                         let path_ptr = L.build_struct_gep struct_space 0 ""
                         builder in
-                        let _ = L.build_store (expr builder e1) path_ptr builder in
-                        (*
-                        in let list_ptr = L.build_struct_gep struct_space 1 ""
-                        builder in
-                        list_ptr
-                        let _ = L.build_store (expr builder e2) list_ptr builder in*)
-                        struct_space
-    (*L.const_struct context [| expr builder e1 ; expr builder e2 |]*)
+                        let _ = L.build_store (snd (expr curr_symbol_table builder e1)) path_ptr builder in
+                        (curr_symbol_table, struct_space)
+    | SId s -> (curr_symbol_table, L.build_load  (lookup curr_symbol_table s) s builder)
+    | SBinop (e1, op, e2) ->
+      (match op with
+      ExprAssign ->
+        let (new_symbol_table, ptr) = expr curr_symbol_table builder e1
+        in let (_, e2') = expr curr_symbol_table builder e2 in
+        let _ = L.build_store e2' ptr builder in
+       (new_symbol_table, e2')
+      | _ -> raise (Failure "Binop not yet implemented")
+    )
     | SPreUnop(op, e) -> (match op with
-        Run -> let exec = expr builder e in
+        Run ->
+              let (_,exec) = expr curr_symbol_table builder e in
               let second_arg =  L.const_pointer_null (L.pointer_type i8_t) in
               let double_pointer = L.build_malloc (L.pointer_type i8_t) "" builder in
               let _ = L.build_store second_arg double_pointer builder in
@@ -91,38 +107,58 @@ let translate (stmts, functions) =
 
               let path = L.build_load path_ptr "" builder in
 
-              L.build_call execvp_func [| path; double_pointer |] "execvp" builder
+              (curr_symbol_table, L.build_call execvp_func [| path; double_pointer |] "execvp" builder)
       | _   -> raise (Failure "preuop not implemented"))
     | SList l -> (match l with
-      [] -> L.const_pointer_null list_t
+      [] ->
+        (curr_symbol_table, L.const_pointer_null i8_t)
                                       (* pointer to first element *)
-      | first :: rest -> let value = L.build_malloc (ltype_of_typ (fst first)) ""
-      builder in
+      | first :: rest -> let (_, value) = expr curr_symbol_table builder first
+      in
+                        (* allocate space for the element and store *)
+                        let value_ptr = L.build_malloc (ltype_of_typ (fst
+                        first)) "" builder in
                           (* to do: strings are pointers but other things are
                           not *)
-                         let first_elem = expr builder first in
-                         (* put value of element into the allocated space *)
-                         let _ =  L.build_store first_elem value builder in
-                         let head_ptr = L.build_malloc list_t "" builder in
-                                          (* pointer to rest of list *)
-                         let slist = (A.List_type (fst first), SList(rest)) in
-                         let rest_SList = expr builder slist
-                         (* rest of the list *)
-                                  (* make struct and put values in there *)
-                         in let head = L.const_struct context [| first_elem ; rest_SList|] in
-                         (* put the struct into the place in memory  *)
-                         let _ = L.build_store head head_ptr builder
-                         in head_ptr )
+                        let _ = L.build_store value value_ptr builder in
+                        (* allocate and fill a list node *)
+
+                        let struct_space = L.build_malloc list_t "" builder in
+                        let struct_val_ptr = L.build_struct_gep struct_space 0
+                        "" builder in
+                        (* i dont even know *)
+
+                        let struct_ptr_ptr = L.build_struct_gep struct_space 1
+                        "" builder in
+
+                        let (_, list_ptr) = expr curr_symbol_table builder
+                        (List_type (fst first), SList(rest))
+                        in
+
+                        (* let next_node_ptr = L.build_struct_gep list_ptr 0 ""
+                        builder in *)
+                        let _ = L.build_store list_ptr struct_ptr_ptr builder in
+                        let _ = L.build_store value_ptr struct_val_ptr builder in
+                        (* raise (Failure "hello")) *)
+                        (* put value of element into the allocated space *)
+                        (curr_symbol_table, struct_space ))
 
                         (* use build store *)
+      | SAssign (s, e) -> let (_, e') = expr curr_symbol_table builder e in
+                          let _  = L.build_store e' (lookup curr_symbol_table s) builder in (curr_symbol_table, e')
+      | SBind (ty, n)  -> let ptr = L.build_alloca (ltype_of_typ ty) n builder in
+                          let new_sym_table = StringMap.add n ptr curr_symbol_table.variables in
+                          ({ variables = new_sym_table; parent =
+                          curr_symbol_table.parent }, ptr)
       | _ -> raise (Failure "Expression not implemented yet")
   in
-  let rec stmt builder (statement : sstmt) = match statement with
-    SExpr e -> let expr_val = expr builder e in (builder, expr_val)
+  let curr_symbol_table = { variables = StringMap.empty ; parent = None } in
+  let rec stmt ((curr_symbol_table : symbol_table), builder) (statement : sstmt) = match statement with
+    SExpr e -> let (new_symbol_table, expr_val) = expr curr_symbol_table builder e in ((new_symbol_table, builder), expr_val)
   (*| SPreUnop (uop, e) -> *)
   | _ -> raise (Failure "Statement not implemented yet")
   in
-  let _ = (List.fold_left_map stmt builder stmts) in
+  let _ = (List.fold_left_map stmt (curr_symbol_table, builder) (List.rev stmts)) in
  let _ = L.build_ret (L.const_int i32_t 0) builder  in
 
   (*
