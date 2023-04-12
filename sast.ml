@@ -3,7 +3,7 @@
 open Ast
 
 type sexpr = typ * sx
-and sx = 
+and sx =
     SLiteral of int
   | SFliteral of string
   | SBoolLit of bool
@@ -21,7 +21,7 @@ and sx =
   | SBind of bind
   | SNoexpr
 
-type sstmt = 
+type sstmt =
   SBlock of sstmt list
   | SExpr of sexpr
   | SReturn of sexpr
@@ -34,6 +34,7 @@ type sfunc_decl = {
   sfname : string;
   sformals : bind list;
   sbody : sstmt list;
+  slocals: bind list;
 }
 
 type sprogram = sstmt list * sfunc_decl list
@@ -49,7 +50,7 @@ let rec string_of_sexpr (t, e) =
   | SId(s) ->          s
   | SChar(c) ->        "'" ^ c ^ "'"
   | SString(s) ->      "\"" ^ s ^ "\""
-  | SExec(e1, e2) ->   
+  | SExec(e1, e2) ->
       "<" ^ string_of_sexpr e1 ^ " withargs " ^ string_of_sexpr e2 ^ ">"
   | SBinop(e1, o, e2) ->
       string_of_sexpr e1 ^ " " ^ string_of_op o ^ " " ^ string_of_sexpr e2
@@ -59,7 +60,7 @@ let rec string_of_sexpr (t, e) =
   | SCall(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_sexpr el) ^ ")"
   | SList(l) ->        "[" ^ (String.concat ", " (List.map string_of_sexpr l)) ^ "]"
-  | SIndex(list, index) -> 
+  | SIndex(list, index) ->
       string_of_sexpr list ^ "[" ^ string_of_sexpr index ^ "]"
   | SBind(var) ->      string_of_vdecl var
   | SNoexpr ->         ""
@@ -70,10 +71,10 @@ let rec string_of_sstmt = function
       "{\n" ^ String.concat "" (List.map string_of_sstmt stmts) ^ "}\n"
   | SExpr(expr) ->     string_of_sexpr expr ^ ";\n";
   | SReturn(expr) ->   "return " ^ string_of_sexpr expr ^ ";\n";
-  | SIf(e, s, SBlock([])) -> 
+  | SIf(e, s, SBlock([])) ->
       "if (" ^ string_of_sexpr e ^ ")\n" ^ string_of_sstmt s
-  | SIf(e, s1, s2) ->  
-      "if (" ^ string_of_sexpr e ^ ")\n" ^ 
+  | SIf(e, s1, s2) ->
+      "if (" ^ string_of_sexpr e ^ ")\n" ^
       string_of_sstmt s1 ^ "else\n" ^ string_of_sstmt s2
   | SFor(e1, e2, e3, s) ->
       "for (" ^ string_of_sexpr e1  ^ " ; " ^ string_of_sexpr e2 ^ " ; " ^

@@ -1,5 +1,6 @@
 (* Semantic checking for the Blue Shell compiler *)
 
+
 open Ast
 open Sast
 
@@ -87,10 +88,20 @@ let check (stmts, functions) =
        | _ ->  StringMap.add n fd map
   in
 
+  let add_func_symbol_table map fd =
+    let n = fd.fname (* Name of the function *)
+    and ty = Function(List.map fst fd.formals, fd.typ) in
+    add_bind map (ty, n)
+  in
   (* Collect all other function names into one symbol table *)
   let function_decls = List.fold_left add_func StringMap.empty functions
+  (* Start with empty environment and map over statements, carrying updated
+  environment as you go *)
   in
-
+  let empty_env = { variables = StringMap.empty ; parent = None }
+  in
+  let env_with_functions = List.fold_left add_func_symbol_table empty_env functions
+  in
   let find_func s =
     try StringMap.find s function_decls
     with Not_found -> raise (Failure ("unrecognized function " ^ s))
@@ -216,7 +227,7 @@ let check (stmts, functions) =
     let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^
       string_of_typ rt ^ " in " ^ string_of_expr ex
     in (curr_symbol_table, (check_assign lt rt err, SAssign(var, (rt, e'))))
-  | Call(fname, args) as call -> raise (Failure (""))
+  | Call(fname, args) as call ->
     (* (match find_func fname with
       fd -> let param_length = List.length fd.formals in
           if List.length args != param_length then
@@ -229,22 +240,24 @@ let check (stmts, functions) =
             in (check_assign ft et err, e')
           in
           let args' = List.map2 check_call fd.formals args
-          in (curr_symbol_table, (fd.typ, SCall(fname, args')))
-      | exception (Failure _) -> match type_of_identifier curr_symbol_table fname with
-          Function (args_typs, ret_typ) -> let param_length = List.length args_typs in
-          if List.length args != param_length then
-            raise (Failure ("expecting " ^ string_of_int param_length ^
-                            " arguments in " ^ string_of_expr call))
-          else let check_call (ft, _) e =
-            let (_, (et, e')) = expr curr_symbol_table e in
-            let err = "illegal argument found " ^ string_of_typ et ^
-              " expected " ^ string_of_typ ft ^ " in " ^ string_of_expr e
-            in (check_assign ft et err, e')
-          in
-          let args' = List.map2 check_call fd.formals args
-          in (curr_symbol_table, (fd.typ, SCall(fname, args')))
-          | exception (Failure _) -> raise (Failure ("function call with invalid name"))
-      ) *)
+          in (curr_symbol_table, (fd.typ, SCall(fname, args')))) *)
+      (* | exception (Failure _) ->  *)
+      (match type_of_identifier curr_symbol_table fname with
+          Function (args_typs, ret_typ) ->
+            let param_length = List.length args_typs in
+            if List.length args != param_length then
+              raise (Failure ("expecting " ^ string_of_int param_length ^
+                              " arguments in " ^ string_of_expr call))
+            else let check_call ft e =
+              let (_, (et, e')) = expr curr_symbol_table e in
+              let err = "illegal argument found " ^ string_of_typ et ^
+                " expected " ^ string_of_typ ft ^ " in " ^ string_of_expr e
+              in (check_assign ft et err, e')
+            in
+            let args' = List.map2 check_call args_typs args
+            in (curr_symbol_table, (ret_typ, SCall(fname, args')))
+          | _ -> raise (Failure ("Not a function")))
+
   | List expr_list ->
     let rec check_list (exprs : expr list) curr_symbol_table =
       match exprs with
@@ -285,11 +298,28 @@ let check (stmts, functions) =
 
   (* Final checked program to return *)
   in
-  (* Start with empty environment and map over statements, carrying updated environment as you go *)
-  let empty_env = { variables = StringMap.empty ; parent = None }
+
+  let check_func  symbol_table func =
+    (symbol_table, {
+      styp = func.typ;
+      sfname = func.fname;
+      sformals = func.formals;
+      sbody = []; (* add new symbol table for body, but references parent st*)
+      slocals = [];
+    })
+
   in
-  let (_, checked_statements) = List.fold_left_map check_stmt empty_env (List.rev stmts)
+  let (env_with_checked_funcs, checked_functions) = List.fold_left_map
+  check_func env_with_functions (List.rev functions)
+  in
+
+  let (_, checked_statements) = List.fold_left_map check_stmt env_with_checked_funcs (List.rev stmts)
   (* in
   let get_statements (table, sstatement) = sstatement *)
-  in (List.rev checked_statements, [])
+  (* go through map called function_decls, put all the fdecls into sfdecls and
+  gather  into a list *)
+
+
+
+  in (List.rev checked_statements, List.rev checked_functions)
   (* in (List.fold_left check_stmt { variables = StringMap.empty ; parent = None } stmts, []) *)
