@@ -35,7 +35,7 @@ let translate (stmts, functions) =
   in
   let list_t     = L.struct_type context [| L.pointer_type i8_t (* value *) ; L.pointer_type i8_t (* next*) |]
   in
-  let exec_t     = L.struct_type context [| string_t (* path *) ; list_t (* args *) |]
+  let exec_t     = L.struct_type context [| string_t (* path *) ; L.pointer_type list_t (* args *) |]
   (* Create an LLVM module -- this is a "container" into which we'll
      generate actual code *)
   and the_module = L.create_module context "BlueShell" in
@@ -82,10 +82,11 @@ let translate (stmts, functions) =
     match e with
       SString s -> (curr_symbol_table, L.build_global_stringptr s "" builder)
     | SLiteral x -> (curr_symbol_table, L.const_int i32_t x)
-    | SExec (e1, e2) -> let struct_space = L.build_malloc exec_t "" builder in
-                        let path_ptr = L.build_struct_gep struct_space 0 ""
-                        builder in
+    | SExec (e1, e2) -> let struct_space = L.build_malloc exec_t "struct_space" builder in
+                        let path_ptr = L.build_struct_gep struct_space 0 "path_ptr" builder in
                         let _ = L.build_store (snd (expr curr_symbol_table builder e1)) path_ptr builder in
+                        let args_ptr = L.build_struct_gep struct_space 1 "args_ptr" builder in
+                        let _ = L.build_store (snd (expr curr_symbol_table builder e2)) args_ptr builder in
                         (curr_symbol_table, struct_space)
     | SId s -> (curr_symbol_table, L.build_load  (lookup curr_symbol_table s) s builder)
     | SBinop (e1, op, e2) ->
@@ -99,7 +100,7 @@ let translate (stmts, functions) =
     )
     | SPreUnop(op, e) -> (match op with
         Run ->
-              let (_,exec) = expr curr_symbol_table builder e in
+              let (_, exec) = expr curr_symbol_table builder e in
               let second_arg =  L.const_pointer_null (L.pointer_type i8_t) in
               let double_pointer = L.build_malloc (L.pointer_type i8_t) "" builder in
               let _ = L.build_store second_arg double_pointer builder in
