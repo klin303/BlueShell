@@ -33,7 +33,7 @@ let translate (stmts, functions) =
   in
   let string_t   = L.pointer_type i8_t
   in
-  let list_t     = L.struct_type context [| L.pointer_type i8_t (* value *) ; L.pointer_type i32_t (* next*) |]
+  let list_t     = L.struct_type context [| L.pointer_type i8_t (* value *) ; L.pointer_type i8_t (* next*) |]
   in
   let exec_t     = L.struct_type context [| string_t (* path *) ; list_t (* args *) |]
   (* Create an LLVM module -- this is a "container" into which we'll
@@ -110,35 +110,36 @@ let translate (stmts, functions) =
               (curr_symbol_table, L.build_call execvp_func [| path; double_pointer |] "execvp" builder)
       | _   -> raise (Failure "preuop not implemented"))
     | SList l -> (match l with
-      [] ->
-        (curr_symbol_table, L.const_pointer_null i8_t)
+      [] -> (curr_symbol_table, L.const_pointer_null (L.pointer_type list_t))
                                       (* pointer to first element *)
       | first :: rest -> let (_, value) = expr curr_symbol_table builder first
       in
                         (* allocate space for the element and store *)
                         let value_ptr = L.build_malloc (ltype_of_typ (fst
-                        first)) "" builder in
+                        first)) "value_ptr" builder in
                           (* to do: strings are pointers but other things are
                           not *)
                         let _ = L.build_store value value_ptr builder in
                         (* allocate and fill a list node *)
 
-                        let struct_space = L.build_malloc list_t "" builder in
+                        let struct_space = L.build_malloc list_t "list_node" builder in
                         let struct_val_ptr = L.build_struct_gep struct_space 0
-                        "" builder in
+                        "struct_val_ptr" builder in
                         (* i dont even know *)
 
                         let struct_ptr_ptr = L.build_struct_gep struct_space 1
-                        "" builder in
+                        "struct_ptr_ptr" builder in
 
-                        let (_, list_ptr) = expr curr_symbol_table builder
-                        (List_type (fst first), SList(rest))
+                        let (_, list_ptr) = expr curr_symbol_table builder (List_type (fst first), SList(rest))
                         in
 
                         (* let next_node_ptr = L.build_struct_gep list_ptr 0 ""
                         builder in *)
-                        let _ = L.build_store list_ptr struct_ptr_ptr builder in
-                        let _ = L.build_store value_ptr struct_val_ptr builder in
+                        let casted_ptr_ptr = L.build_pointercast struct_ptr_ptr (L.pointer_type (L.pointer_type list_t)) "casted_ptr_ptr" builder in
+                        let _ = L.build_store list_ptr casted_ptr_ptr builder in
+                        let casted_val_ptr = L.build_pointercast struct_val_ptr (L.pointer_type (L.pointer_type i8_t)) "casted_val_ptr" builder in
+                        let casted_val = L.build_pointercast value_ptr (L.pointer_type i8_t) "casted_val" builder in
+                        let _ = L.build_store casted_val casted_val_ptr builder in
                         (* raise (Failure "hello")) *)
                         (* put value of element into the allocated space *)
                         (curr_symbol_table, struct_space ))
