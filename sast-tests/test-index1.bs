@@ -1,4 +1,5 @@
-list_of string x = ["hello"];
-string y = x["hello"];
+list of string x = ["hello"];
+string y = x[0];
+x[0] = "abc";
 int i = 2;
 x[i] = "hello";

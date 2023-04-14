@@ -46,7 +46,7 @@ let translate (stmts, functions) =
     | A.Bool    -> i1_t
     | A.Float   -> float_t
     | A.Void    -> void_t
-    | A.Char    -> i8_t
+    | A.Char    -> string_t
     | A.String  -> string_t
     | A.Exec    -> exec_t
     | A.List_type ty    -> list_t
@@ -80,23 +80,90 @@ let translate (stmts, functions) =
   in
   let rec expr (curr_symbol_table : symbol_table) builder ((_, e) : sexpr) =
     match e with
-      SString s -> (curr_symbol_table, L.build_global_stringptr s "" builder)
-    | SLiteral x -> (curr_symbol_table, L.const_int i32_t x)
+      SLiteral x -> (curr_symbol_table, L.const_int i32_t x)
+    | SFliteral l -> (curr_symbol_table, L.const_float_of_string float_t l)
+    | SBoolLit b -> (curr_symbol_table, L.const_int i1_t (if b then 1 else 0))
+    | SId s -> (curr_symbol_table, L.build_load  (lookup curr_symbol_table s) s builder)
+    | SChar c -> (curr_symbol_table, L.build_global_stringptr c "" builder)
+    | SString s -> (curr_symbol_table, L.build_global_stringptr s "" builder)
+    | SNoexpr -> (curr_symbol_table, L.const_int i32_t 0)
     | SExec (e1, e2) -> let struct_space = L.build_malloc exec_t "struct_space" builder in
                         let path_ptr = L.build_struct_gep struct_space 0 "path_ptr" builder in
                         let _ = L.build_store (snd (expr curr_symbol_table builder e1)) path_ptr builder in
                         let args_ptr = L.build_struct_gep struct_space 1 "args_ptr" builder in
                         let _ = L.build_store (snd (expr curr_symbol_table builder e2)) args_ptr builder in
                         (curr_symbol_table, struct_space)
-    | SId s -> (curr_symbol_table, L.build_load  (lookup curr_symbol_table s) s builder)
     | SBinop (e1, op, e2) ->
+      let (t, _) = e1
+      in let (curr_symbol_table', e1') = expr curr_symbol_table builder e1
+      in let (curr_symbol_table'', e2') = expr curr_symbol_table' builder e2 in
       (match op with
-      ExprAssign ->
-        let (new_symbol_table, ptr) = expr curr_symbol_table builder e1
-        in let (_, e2') = expr curr_symbol_table builder e2 in
-        let _ = L.build_store e2' ptr builder in
-       (new_symbol_table, e2')
-      | _ -> raise (Failure "Binop not yet implemented")
+        ExprAssign ->
+          let (new_symbol_table, ptr) = expr curr_symbol_table builder e1
+          in let (_, e2') = expr curr_symbol_table builder e2 in
+          let _ = L.build_store e2' ptr builder in
+          (new_symbol_table, e2')
+        | Add -> (match t with
+          Float -> (curr_symbol_table'', L.build_fadd e1' e2' "tmp" builder)
+          | Int -> (curr_symbol_table'', L.build_add e1' e2' "tmp" builder)
+          | Exec -> raise (Failure "exec add not implemented yet")
+          | _ -> raise (Failure "semant should have caught add with invalid types")
+        )
+        | Sub -> (match t with
+          Float -> (curr_symbol_table'', L.build_fsub e1' e2' "tmp" builder)
+          | Int -> (curr_symbol_table'', L.build_sub e1' e2' "tmp" builder)
+          | _ -> raise (Failure "semant should have caught sub with invalid types")
+        )
+        | Mult -> (match t with
+          Float -> (curr_symbol_table'', L.build_fmul e1' e2' "tmp" builder)
+          | Int -> (curr_symbol_table'', L.build_mul e1' e2' "tmp" builder)
+          | Exec -> raise (Failure "exec mul not implemented yet")
+          | _ -> raise (Failure "semant should have caught mul with invalid types")
+        )
+        | Div -> (match t with
+          Float -> (curr_symbol_table'', L.build_fdiv e1' e2' "tmp" builder)
+          | Int -> (curr_symbol_table'', L.build_sdiv e1' e2' "tmp" builder)
+          | _ -> raise (Failure "semant should have caught div with invalid types")
+        )
+        | Less -> (match t with
+          Float -> (curr_symbol_table'', L.build_fcmp L.Fcmp.Olt e1' e2' "tmp" builder)
+          | Int -> (curr_symbol_table'', L.build_icmp L.Icmp.Slt e1' e2' "tmp" builder)
+          | _ -> raise (Failure "semant should have caught less with invalid types")
+        )
+        | Leq -> (match t with
+          Float -> (curr_symbol_table'', L.build_fcmp L.Fcmp.Ole e1' e2' "tmp" builder)
+          | Int -> (curr_symbol_table'', L.build_icmp L.Icmp.Sle e1' e2' "tmp" builder)
+          | _ -> raise (Failure "semant should have caught leq with invalid types")
+        )
+        | Greater -> (match t with
+          Float -> (curr_symbol_table'', L.build_fcmp L.Fcmp.Ogt e1' e2' "tmp" builder)
+          | Int -> (curr_symbol_table'', L.build_icmp L.Icmp.Sgt e1' e2' "tmp" builder)
+          | _ -> raise (Failure "semant should have caught greater with invalid types")
+        )
+        | Geq -> (match t with
+          Float -> (curr_symbol_table'', L.build_fcmp L.Fcmp.Oge e1' e2' "tmp" builder)
+          | Int -> (curr_symbol_table'', L.build_icmp L.Icmp.Sge e1' e2' "tmp" builder)
+          | _ -> raise (Failure "semant should have caught geq with invalid types")
+        )
+        | And -> (match t with
+          Bool -> (curr_symbol_table'', L.build_and e1' e2' "tmp" builder)
+          | _ -> raise (Failure "semant should have caught and with invalid types")
+        )
+        | Or -> (match t with
+          Bool -> (curr_symbol_table'', L.build_or e1' e2' "tmp" builder)
+          | _ -> raise (Failure "semant should have caught or with invalid types")
+        )
+        | Equal -> (match t with
+          Float -> (curr_symbol_table'', L.build_fcmp L.Fcmp.Oeq e1' e2' "tmp" builder)
+          | Int -> (curr_symbol_table'', L.build_icmp L.Icmp.Eq e1' e2' "tmp" builder)
+          | _ -> raise (Failure "equals not implemented on other types")
+        )
+        | Neq -> (match t with
+          Float -> (curr_symbol_table'', L.build_fcmp L.Fcmp.One e1' e2' "tmp" builder)
+          | Int -> (curr_symbol_table'', L.build_icmp L.Icmp.Ne e1' e2' "tmp" builder)
+          | _ -> raise (Failure "equals not implemented on other types")
+        )
+        | _ -> raise (Failure "not yet implemented other binops")
     )
     | SPreUnop(op, e) -> (match op with
         Run ->

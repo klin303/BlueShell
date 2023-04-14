@@ -147,8 +147,14 @@ let check (stmts, functions) =
                       | _ -> raise (Failure ("invalid assignment"))
                     in (symbol_table'', (ty, SBinop((ty1, e1'), op, (ty2,
                     e2'))))
-      | (_, ExprAssign) | (Bind _, _) -> raise (Failure "Bind can only work with
-      ssignment and expression assignment only works with bind")
+      | (Index _, ExprAssign) -> 
+                    let same = ty2 = ty1 in
+                    (match same with
+                      true -> (symbol_table'', (ty1, SBinop((ty1, e1'), op, (ty2,
+                      e2'))))
+                      | false -> raise (Failure ("index exprassign with incompatible types")))
+      | (_, ExprAssign) -> raise (Failure "expression assignment needs a bind")
+      | (Bind _, _) -> raise (Failure "bind needs an expression assignment")
       | (_, Add) | (_, Mult) ->
                     let same = ty2 = ty1 in
                     (match ty1 with
