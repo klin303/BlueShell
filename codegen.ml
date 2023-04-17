@@ -92,18 +92,7 @@ let translate (stmts, functions) =
                         let _ = L.build_store (snd (expr curr_symbol_table builder e1)) path_ptr builder in
                         let args_ptr = L.build_struct_gep struct_space 1 "args_ptr" builder in
                         let casted_args_ptr = L.build_pointercast args_ptr (L.pointer_type (L.pointer_type list_t)) "casted_args_ptr" builder in
-                        (* let _ = L.build_store args_ptr casted_args_ptr in *)
                         let _ = L.build_store (snd (expr curr_symbol_table builder e2)) casted_args_ptr builder in
-                        (* let (_, e1') = expr curr_symbol_table builder e1 in
-                        let path_ptr = L.build_struct_gep struct_space 0 "path_ptr" builder in
-                        let _ = L.build_store e1' path_ptr builder in
-                        let casted_path = L.build_pointercast e1' string_t "casted_path_ptr" builder in
-                        let casted_path_ptr = L.build_pointercast path_ptr (L.pointer_type string_t) "casted_path_ptr" builder in
-                        let _ = L.build_store casted_path casted_path_ptr builder in
-                        let args_ptr = L.build_struct_gep struct_space 1 "args_ptr" builder in
-                        let casted_args_ptr = L.build_pointercast args_ptr (L.pointer_type (L.pointer_type (L.pointer_type list_t))) "casted_args_ptr" builder in
-                        (* let _ = L.build_store args_ptr casted_args_ptr in *)
-                        let _ = L.build_store (snd (expr curr_symbol_table builder e2)) casted_args_ptr builder in *)
                         (curr_symbol_table, struct_space)
     | SBinop (e1, op, e2) ->
       let (t, _) = e1
@@ -180,9 +169,7 @@ let translate (stmts, functions) =
     | SPreUnop(op, e) -> (match op with
         Run ->
               let (_, exec) = expr curr_symbol_table builder e in
-              (* let second_arg =  L.const_pointer_null (L.pointer_type i8_t) in
-              let double_pointer = L.build_malloc (L.pointer_type i8_t) "" builder in
-              let _ = L.build_store second_arg double_pointer builder in *)
+
               let path_ptr = L.build_struct_gep exec 0 "path_ptr" builder in
               let path = L.build_load path_ptr "path" builder in
               let args_ptr = L.build_struct_gep exec 1 "args_ptr" builder in
@@ -223,7 +210,7 @@ let translate (stmts, functions) =
                         (* use build store *)
       | SAssign (s, e) -> let (_, e') = expr curr_symbol_table builder e in
                           let _  = L.build_store e' (lookup curr_symbol_table s) builder in (curr_symbol_table, e')
-      | SBind (ty, n)  -> let ptr = L.build_alloca (ltype_of_typ ty) n builder in
+      | SBind (ty, n)  -> let ptr = L.build_malloc ( L.pointer_type (ltype_of_typ ty)) "variable ptr" builder in
                           let new_sym_table = StringMap.add n ptr curr_symbol_table.variables in
                           ({ variables = new_sym_table; parent =
                           curr_symbol_table.parent }, ptr)
