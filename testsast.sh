@@ -29,12 +29,13 @@ echo "**********************RUNNING SUCCESS TESTS**********************\n"
 for test in $tests
 do
     echo "Running test $test........"
-    file_name="tests/test-${test}.bs"
-    gold_standard="tests/gsts/test-${test}.gst"
-    ./toplevel.native -s < $file_name > "$test.out"
-    diff "$test.out" $gold_standard > $test.diff
-    if [ -s $test.diff ]; then
-        echo "\nERROR: SAST FOR ${test} DOES NOT MATCH GOLD STANDARD\n\n"
+    file_name="sast-tests/${test}.bs"
+    gold_standard="sast-tests/gsts/${test}.gst"
+    ./toplevel.native -s < $file_name > "sast-tests/out/$test.out"
+    diff "sast-tests/out/$test.out" $gold_standard > "sast-tests/diff/$test.diff"
+    if [ -s "sast-tests/diff/$test.diff" ]; then
+        echo "\nERROR: SAST FOR ${test} DOES NOT MATCH GOLD STANDARD\n"
+        echo "The difference: \n"
         cat $test.diff
     else
         echo "PASSED \n"
@@ -51,12 +52,13 @@ echo "**********************RUNNING FAILURE TESTS**********************\n"
 for ftest in $fail_tests
 do
     echo "Running failure test $ftest............"
-    file_name="tests/fail-${ftest}.bs"
-    fail_standard="tests/fail-${ftest}.gst"
-    ./toplevel.native -s < $file_name 2> "$ftest.out"
-    diff "$ftest.out" $fail_standard > $ftest.diff
-    if [ -s $ftest.diff ]; then
+    file_name="sast-tests/${ftest}.bs"
+    fail_standard="sast-tests/gsts/${ftest}.gst"
+    ./toplevel.native -s < $file_name 2> "sast-tests/out/$ftest.out"
+    diff "sast-tests/out/$ftest.out" $fail_standard > "sast-tests/diff/$ftest.diff"
+    if [ -s "sast-tests/diff/$ftest.diff" ]; then
         echo "ERROR: OUTPUT FOR ${ftest} DOES NOT MATCH EXPECTED OUTPUT \n "
+        echo "The difference: \n"
         cat $ftest.diff
     else
         echo "PASSED \n"
@@ -66,7 +68,13 @@ done
 
 echo "removing .out and .diff files created:"
 
-make clean_tests
+diffpath="sast-tests/diff/*"
+rm -f $path
+
+outpath="sast-tests/gsts/*"
+
+rm -f $path
+
 echo "\n"
 
 echo "bye"

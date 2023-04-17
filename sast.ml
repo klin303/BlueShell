@@ -34,7 +34,6 @@ type sfunc_decl = {
   sfname : string;
   sformals : bind list;
   sbody : sstmt list;
-  slocals: bind list;
 }
 
 type sprogram = sstmt list * sfunc_decl list

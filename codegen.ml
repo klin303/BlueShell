@@ -53,7 +53,7 @@ let translate (stmts, functions) =
     | _ -> raise (Failure "ltype_of_typ fail")
   in
   let execvp_t : L.lltype =
-      L.var_arg_function_type i32_t [| L.pointer_type i8_t;  L.pointer_type (L.pointer_type i8_t)|] in
+      L.var_arg_function_type i32_t [| L.pointer_type i8_t;  L.pointer_type list_t |] in
   let execvp_func : L.llvalue =
      L.declare_function "execvp_helper" execvp_t the_module in
 
@@ -84,14 +84,26 @@ let translate (stmts, functions) =
     | SFliteral l -> (curr_symbol_table, L.const_float_of_string float_t l)
     | SBoolLit b -> (curr_symbol_table, L.const_int i1_t (if b then 1 else 0))
     | SId s -> (curr_symbol_table, L.build_load  (lookup curr_symbol_table s) s builder)
-    | SChar c -> (curr_symbol_table, L.build_global_stringptr c "" builder)
-    | SString s -> (curr_symbol_table, L.build_global_stringptr s "" builder)
+    | SChar c -> (curr_symbol_table, L.build_global_stringptr c "char" builder)
+    | SString s -> (curr_symbol_table, L.build_global_stringptr s "string" builder)
     | SNoexpr -> (curr_symbol_table, L.const_int i32_t 0)
     | SExec (e1, e2) -> let struct_space = L.build_malloc exec_t "struct_space" builder in
                         let path_ptr = L.build_struct_gep struct_space 0 "path_ptr" builder in
                         let _ = L.build_store (snd (expr curr_symbol_table builder e1)) path_ptr builder in
                         let args_ptr = L.build_struct_gep struct_space 1 "args_ptr" builder in
-                        let _ = L.build_store (snd (expr curr_symbol_table builder e2)) args_ptr builder in
+                        let casted_args_ptr = L.build_pointercast args_ptr (L.pointer_type (L.pointer_type list_t)) "casted_args_ptr" builder in
+                        (* let _ = L.build_store args_ptr casted_args_ptr in *)
+                        let _ = L.build_store (snd (expr curr_symbol_table builder e2)) casted_args_ptr builder in
+                        (* let (_, e1') = expr curr_symbol_table builder e1 in
+                        let path_ptr = L.build_struct_gep struct_space 0 "path_ptr" builder in
+                        let _ = L.build_store e1' path_ptr builder in
+                        let casted_path = L.build_pointercast e1' string_t "casted_path_ptr" builder in
+                        let casted_path_ptr = L.build_pointercast path_ptr (L.pointer_type string_t) "casted_path_ptr" builder in
+                        let _ = L.build_store casted_path casted_path_ptr builder in
+                        let args_ptr = L.build_struct_gep struct_space 1 "args_ptr" builder in
+                        let casted_args_ptr = L.build_pointercast args_ptr (L.pointer_type (L.pointer_type (L.pointer_type list_t))) "casted_args_ptr" builder in
+                        (* let _ = L.build_store args_ptr casted_args_ptr in *)
+                        let _ = L.build_store (snd (expr curr_symbol_table builder e2)) casted_args_ptr builder in *)
                         (curr_symbol_table, struct_space)
     | SBinop (e1, op, e2) ->
       let (t, _) = e1
@@ -168,14 +180,14 @@ let translate (stmts, functions) =
     | SPreUnop(op, e) -> (match op with
         Run ->
               let (_, exec) = expr curr_symbol_table builder e in
-              let second_arg =  L.const_pointer_null (L.pointer_type i8_t) in
+              (* let second_arg =  L.const_pointer_null (L.pointer_type i8_t) in
               let double_pointer = L.build_malloc (L.pointer_type i8_t) "" builder in
-              let _ = L.build_store second_arg double_pointer builder in
-              let path_ptr = L.build_struct_gep exec 0 "" builder in
-
-              let path = L.build_load path_ptr "" builder in
-
-              (curr_symbol_table, L.build_call execvp_func [| path; double_pointer |] "execvp" builder)
+              let _ = L.build_store second_arg double_pointer builder in *)
+              let path_ptr = L.build_struct_gep exec 0 "path_ptr" builder in
+              let path = L.build_load path_ptr "path" builder in
+              let args_ptr = L.build_struct_gep exec 1 "args_ptr" builder in
+              let args = L.build_load args_ptr "args" builder in
+              (curr_symbol_table, L.build_call execvp_func [| path ; args |] "execvp" builder)
       | _   -> raise (Failure "preuop not implemented"))
     | SList l -> (match l with
       [] -> (curr_symbol_table, L.const_pointer_null (L.pointer_type list_t))
@@ -193,7 +205,6 @@ let translate (stmts, functions) =
                         let struct_space = L.build_malloc list_t "list_node" builder in
                         let struct_val_ptr = L.build_struct_gep struct_space 0
                         "struct_val_ptr" builder in
-                        (* i dont even know *)
 
                         let struct_ptr_ptr = L.build_struct_gep struct_space 1
                         "struct_ptr_ptr" builder in

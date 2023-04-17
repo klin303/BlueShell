@@ -147,7 +147,7 @@ let check (stmts, functions) =
                       | _ -> raise (Failure ("invalid assignment"))
                     in (symbol_table'', (ty, SBinop((ty1, e1'), op, (ty2,
                     e2'))))
-      | (Index _, ExprAssign) -> 
+      | (Index _, ExprAssign) ->
                     let same = ty2 = ty1 in
                     (match same with
                       true -> (symbol_table'', (ty1, SBinop((ty1, e1'), op, (ty2,
@@ -297,12 +297,12 @@ let check (stmts, functions) =
   in
   let rec check_stmt (curr_symbol_table : symbol_table) statement =
   match statement with
-    Block stmts -> 
+    Block stmts ->
       let rec check_stmt_list (curr_symbol_table' : symbol_table) sl =
         (match sl with
               [Return _ as s] -> [snd (check_stmt curr_symbol_table' s)]
             | Return _ :: _   -> raise (Failure "nothing may follow a return")
-            | Block sl :: ss  -> 
+            | Block sl :: ss  ->
               let temp = { variables = StringMap.empty ; parent =
               Some curr_symbol_table' } in
               let checked_sl = (check_stmt_list temp sl)
@@ -315,14 +315,13 @@ let check (stmts, functions) =
   | Expr e ->
     let (new_symbol_table, e') = expr curr_symbol_table e in
     (new_symbol_table, SExpr e')
-  | Return e -> raise (Failure ("not yet implemented return"))
-  | If(e, s1, s2) -> 
+  | If(e, s1, s2) ->
     let (curr_symbol_table', (ty, e')) = expr curr_symbol_table e in
     (match ty with
       Bool -> (curr_symbol_table, SIf((ty, e'), snd (check_stmt curr_symbol_table' s1), snd (check_stmt
       curr_symbol_table' s2)))
       | _ -> raise (Failure ("if needs a boolean predicate")))
-  | For(e1, e2, e3, s) -> 
+  | For(e1, e2, e3, s) ->
     let (curr_symbol_table', (ty1, e1')) = expr curr_symbol_table e1 in
     let (curr_symbol_table'', (ty2, e2')) = expr curr_symbol_table' e2 in
     let (curr_symbol_table''', (ty3, e3')) = expr curr_symbol_table'' e3 in
@@ -335,30 +334,78 @@ let check (stmts, functions) =
       (match ty with
       Bool -> (curr_symbol_table, SWhile((ty, e'), snd (check_stmt curr_symbol_table' s)))
       | _ -> raise (Failure ("if needs a boolean predicate")))
+  | Return e -> raise (Failure ("cannot return from not a function"))
   (* Final checked program to return *)
   in
 
   let check_func symbol_table func =
+    let map = StringMap.empty in
+    let add_formals formal_map name typ =
+      StringMap.add name typ formal_map
+    in
+    let formals_map = List.fold_left2 add_formals StringMap.empty (List.map snd func.formals) (List.map
+    fst func.formals) in
+    let formals_env = { variables = formals_map ; parent = None } in
+    let rec check_stmt_wrap (curr_symbol_table : symbol_table) statement =
+      (match statement with
+      Return ret ->
+        let (curr_symbol_table', (ty_ret, ret')) = expr curr_symbol_table ret in
+        let same = ty_ret = func.typ in
+        (match same with
+          true -> (curr_symbol_table', SReturn (ty_ret, ret'))
+          | false -> raise (Failure ("return type invalid")))
+      | Block stmts ->
+        let rec check_stmt_list (curr_symbol_table' : symbol_table) sl =
+          (match sl with
+                [Return _ as s] -> [snd (check_stmt_wrap curr_symbol_table' s)]
+              | Return _ :: _   -> raise (Failure "nothing may follow a return")
+              | Block sl :: ss  ->
+                let temp = { variables = StringMap.empty ; parent =
+                Some curr_symbol_table' } in
+                let checked_sl = (check_stmt_list temp sl)
+                in
+                SBlock(checked_sl) :: (check_stmt_list curr_symbol_table' ss) (* Flatten blocks *)
+              | s :: ss         -> (snd (check_stmt_wrap curr_symbol_table' s)) ::
+              (check_stmt_list curr_symbol_table' ss)
+              | []              -> [])
+            in (curr_symbol_table, SBlock(check_stmt_list curr_symbol_table stmts))
+    | Expr e ->
+      let (new_symbol_table, e') = expr curr_symbol_table e in
+      (new_symbol_table, SExpr e')
+    | If(e, s1, s2) ->
+      let (curr_symbol_table', (ty, e')) = expr curr_symbol_table e in
+      (match ty with
+        Bool -> (curr_symbol_table, SIf((ty, e'), snd (check_stmt_wrap curr_symbol_table' s1), snd (check_stmt_wrap
+        curr_symbol_table' s2)))
+        | _ -> raise (Failure ("if needs a boolean predicate")))
+    | For(e1, e2, e3, s) ->
+      let (curr_symbol_table', (ty1, e1')) = expr curr_symbol_table e1 in
+      let (curr_symbol_table'', (ty2, e2')) = expr curr_symbol_table' e2 in
+      let (curr_symbol_table''', (ty3, e3')) = expr curr_symbol_table'' e3 in
+      (match ty2 with
+        Bool -> (curr_symbol_table''', SFor((ty1, e1'), (ty2, e2'), (ty3, e3'),
+        snd (check_stmt_wrap curr_symbol_table''' s)))
+        | _ -> raise (Failure ("for needs a boolean as the second expression")))
+    | While(e, s) ->
+      let (curr_symbol_table', (ty, e')) = expr curr_symbol_table e in
+        (match ty with
+        Bool -> (curr_symbol_table, SWhile((ty, e'), snd (check_stmt_wrap curr_symbol_table' s)))
+        | _ -> raise (Failure ("if needs a boolean predicate"))))
+    in
+    let (_, checked_statements) = List.fold_left_map check_stmt_wrap formals_env func.body in
     (symbol_table, {
       styp = func.typ;
       sfname = func.fname;
       sformals = func.formals;
-      sbody = []; (* add new symbol table for body, but references parent st*)
-      slocals = []; (* TODO: check body of function *)
+      sbody = checked_statements; (* add new symbol table for body, but references parent st*)
     })
 
   in
-  let (env_with_checked_funcs, checked_functions) = List.fold_left_map
-  check_func env_with_functions (List.rev functions)
+  let (env_with_checked_funcs, checked_functions) = List.fold_left_map check_func env_with_functions (List.rev functions)
   in
 
   let (_, checked_statements) = List.fold_left_map check_stmt env_with_checked_funcs (List.rev stmts)
-  (* in
-  let get_statements (table, sstatement) = sstatement *)
   (* go through map called function_decls, put all the fdecls into sfdecls and
   gather  into a list *)
 
-
-
   in (List.rev checked_statements, List.rev checked_functions)
-  (* in (List.fold_left check_stmt { variables = StringMap.empty ; parent = None } stmts, []) *)

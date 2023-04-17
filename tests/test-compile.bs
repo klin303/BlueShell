@@ -1,0 +1,2 @@
+./<"./compile.sh" withargs ["./tests/test-echo.bs"]>;
+./<"./test-echo.exe">;

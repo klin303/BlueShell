@@ -1,0 +1,1 @@
+./<"./toplevel.native" withargs ["-s", "./sast-tests/test-function1.bs"]>;
