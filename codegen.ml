@@ -201,14 +201,11 @@ let translate (stmts, functions) =
                         let (_, list_ptr) = expr curr_symbol_table builder (List_type (fst first), SList(rest))
                         in
 
-                        (* let next_node_ptr = L.build_struct_gep list_ptr 0 ""
-                        builder in *)
                         let casted_ptr_ptr = L.build_pointercast struct_ptr_ptr (L.pointer_type (L.pointer_type list_t)) "casted_ptr_ptr" builder in
                         let _ = L.build_store list_ptr casted_ptr_ptr builder in
                         let casted_val_ptr = L.build_pointercast struct_val_ptr (L.pointer_type (L.pointer_type i8_t)) "casted_val_ptr" builder in
                         let casted_val = L.build_pointercast value_ptr (L.pointer_type i8_t) "casted_val" builder in
                         let _ = L.build_store casted_val casted_val_ptr builder in
-                        (* raise (Failure "hello")) *)
                         (* put value of element into the allocated space *)
                         (curr_symbol_table, struct_space ))
 
@@ -224,8 +221,7 @@ let translate (stmts, functions) =
   let curr_symbol_table = { variables = StringMap.empty ; parent = None } in
   let rec stmt ((curr_symbol_table : symbol_table), builder) (statement : sstmt) = match statement with
     SExpr e -> let (new_symbol_table, expr_val) = expr curr_symbol_table builder e in ((new_symbol_table, builder), expr_val)
-  (*| SPreUnop (uop, e) -> *)
-  | _ -> raise (Failure "Statement not implemented yet")
+    | _ -> raise (Failure "Statement not implemented yet")
   in
   let _ = (List.fold_left_map stmt (curr_symbol_table, builder) (List.rev stmts)) in
  let _ = L.build_ret (L.const_int i32_t 0) builder  in

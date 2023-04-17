@@ -40,8 +40,6 @@ rule tokenize = parse
 | "!"        { NOT }
 | "=="       { EQ }
 | "!="       { NEQ }
-| ">"        { GT }
-| "<"        { LT }
 | ">="       { GEQ }
 | "<="       { LEQ }
 (* stmts *)

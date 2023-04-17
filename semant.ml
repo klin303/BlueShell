@@ -291,35 +291,60 @@ let check (stmts, functions) =
         true -> (curr_symbol_table, (List_type (fst elem'), SList(List.map expr_to_sexpr expr_list)))
         | false -> raise (Failure ("list must be monotype"))
     )
-
   | Bind bind -> (add_bind curr_symbol_table bind, (fst bind, SBind bind))
   | Noexpr      -> (curr_symbol_table, (Void, SNoexpr))
 
   in
   let rec check_stmt (curr_symbol_table : symbol_table) statement =
   match statement with
-    Block stmts -> raise (Failure ("not yet implemented block"))
+    Block stmts -> 
+      let rec check_stmt_list (curr_symbol_table' : symbol_table) sl =
+        (match sl with
+              [Return _ as s] -> [snd (check_stmt curr_symbol_table' s)]
+            | Return _ :: _   -> raise (Failure "nothing may follow a return")
+            | Block sl :: ss  -> 
+              let temp = { variables = StringMap.empty ; parent =
+              Some curr_symbol_table' } in
+              let checked_sl = (check_stmt_list temp sl)
+              in
+              SBlock(checked_sl) :: (check_stmt_list curr_symbol_table' ss) (* Flatten blocks *)
+            | s :: ss         -> (snd (check_stmt curr_symbol_table' s)) ::
+            (check_stmt_list curr_symbol_table' ss)
+            | []              -> [])
+          in (curr_symbol_table, SBlock(check_stmt_list curr_symbol_table stmts))
   | Expr e ->
     let (new_symbol_table, e') = expr curr_symbol_table e in
     (new_symbol_table, SExpr e')
   | Return e -> raise (Failure ("not yet implemented return"))
-  | If(e, s1, s2) -> raise (Failure ("not yet implemented if"))
-  | For(e1, e2, e3, s) -> raise (Failure ("not yet implemented for"))
-  | While(e, s) -> raise (Failure ("not yet implemented while"))
-
-  (* in
-  let check_function = raise (Failure ("not yet implemented check func")) *)
-
+  | If(e, s1, s2) -> 
+    let (curr_symbol_table', (ty, e')) = expr curr_symbol_table e in
+    (match ty with
+      Bool -> (curr_symbol_table, SIf((ty, e'), snd (check_stmt curr_symbol_table' s1), snd (check_stmt
+      curr_symbol_table' s2)))
+      | _ -> raise (Failure ("if needs a boolean predicate")))
+  | For(e1, e2, e3, s) -> 
+    let (curr_symbol_table', (ty1, e1')) = expr curr_symbol_table e1 in
+    let (curr_symbol_table'', (ty2, e2')) = expr curr_symbol_table' e2 in
+    let (curr_symbol_table''', (ty3, e3')) = expr curr_symbol_table'' e3 in
+    (match ty2 with
+      Bool -> (curr_symbol_table''', SFor((ty1, e1'), (ty2, e2'), (ty3, e3'),
+      snd (check_stmt curr_symbol_table''' s)))
+      | _ -> raise (Failure ("for needs a boolean as the second expression")))
+  | While(e, s) ->
+    let (curr_symbol_table', (ty, e')) = expr curr_symbol_table e in
+      (match ty with
+      Bool -> (curr_symbol_table, SWhile((ty, e'), snd (check_stmt curr_symbol_table' s)))
+      | _ -> raise (Failure ("if needs a boolean predicate")))
   (* Final checked program to return *)
   in
 
-  let check_func  symbol_table func =
+  let check_func symbol_table func =
     (symbol_table, {
       styp = func.typ;
       sfname = func.fname;
       sformals = func.formals;
       sbody = []; (* add new symbol table for body, but references parent st*)
-      slocals = [];
+      slocals = []; (* TODO: check body of function *)
     })
 
   in

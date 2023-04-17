@@ -8,7 +8,7 @@
 RANGLE OF ARROW/* structural tokens */
 %token PLUS MINUS TIMES DIVIDE ASSIGN /* type operators */
 %token AND OR NOT /* logical operators */
-%token GT LT EQ GEQ LEQ NEQ /* comparisons */
+%token EQ GEQ LEQ NEQ /* comparisons */
 %token IF ELSE WHILE FOR RETURN /* statements */
 %token INT BOOL FLOAT VOID EXEC CHR STR LIST FUNCTION /* types */
 %token <int> LITERAL
@@ -32,14 +32,14 @@ RANGLE OF ARROW/* structural tokens */
 %left OR
 %left AND
 %left EQ NEQ
-%left LT GT LEQ GEQ
+%left LANGLE RANGLE
+%left LEQ GEQ
 %left PLUS MINUS
 %left TIMES DIVIDE
 %right NOT
 %right LEN
 %left CONS
 %right LBRACKET LPAREN
-%right MORE
 
 %%
 
@@ -142,9 +142,9 @@ expr:
   | expr DIVIDE expr          { Binop($1, Div,   $3)   }
   | expr EQ     expr          { Binop($1, Equal, $3)   }
   | expr NEQ    expr          { Binop($1, Neq,   $3)   }
-  | expr LT     expr          { Binop($1, Less,  $3)   }
+  | expr LANGLE     expr          { Binop($1, Less,  $3)   }
   | expr LEQ    expr          { Binop($1, Leq,   $3)   }
-  | expr GT     expr          { Binop($1, Greater, $3) }
+  | expr RANGLE     expr          { Binop($1, Greater, $3) }
   | expr GEQ    expr          { Binop($1, Geq,   $3)   }
   | expr AND    expr          { Binop($1, And,   $3)   }
   | expr OR     expr          { Binop($1, Or,    $3)   }
