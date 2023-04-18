@@ -57,18 +57,12 @@ let translate (stmts, functions) =
   let execvp_func : L.llvalue =
      L.declare_function "execvp_helper" execvp_t the_module in
 
-  (* let *)
-
   (* the first blocks that appear in the program are the function declarations.
   What should we make the first block in our program for now  *)
-  (* let main = L.const_stringz context "main" in *)
   let main_func = L.define_function "main" (L.function_type i32_t [||]) the_module in
-  (* Fill in the body of the given function *)
-  (* let build_function_body fdecl =
-    let (the_function, _) = StringMap.find fdecl.sfname function_decls in
-    let builder = L.builder_at_end context (L.entry_block the_function) in *)
-  let builder = L.builder_at_end context (L.entry_block main_func) in
-  (*let exec : *)
+
+  let main_builder = L.builder_at_end context (L.entry_block main_func) in
+
   let rec lookup (curr_symbol_table : symbol_table) s =
     try
       (* Try to find binding in nearest block *)
@@ -238,22 +232,37 @@ let translate (stmts, functions) =
   in
   let curr_symbol_table = { variables = StringMap.empty ; parent = None } in
   let rec stmt ((curr_symbol_table : symbol_table), builder) (statement : sstmt) = match statement with
-    SExpr e -> let (new_symbol_table, expr_val) = expr curr_symbol_table builder e in ((new_symbol_table, builder), expr_val)
+    (* SBlock sl -> List.fold_left stmt (curr_symbol_table, builder) sl *)
+    SReturn e -> ((curr_symbol_table, builder), L.build_ret_void builder)
+    | SExpr e -> let (new_symbol_table, expr_val) = expr curr_symbol_table builder e in ((new_symbol_table, builder), expr_val)
     | _ -> raise (Failure "Statement not implemented yet")
   in
-  let _ = (List.fold_left_map stmt (curr_symbol_table, builder) (List.rev stmts)) in
- let _ = L.build_ret (L.const_int i32_t 0) builder  in
+  let function_decls : (L.llvalue * sfunc_decl) StringMap.t =
+    let function_decl m fdecl =
+      let name = fdecl.sfname
+      and formal_types = 
+  Array.of_list (List.map (fun (t,_) -> ltype_of_typ t) fdecl.sformals)
+      in let ftype = L.function_type (ltype_of_typ fdecl.styp) formal_types in
+      StringMap.add name (L.define_function name ftype the_module, fdecl) m in
+    List.fold_left function_decl StringMap.empty functions in
 
-  (*
-  (* Declare each global variable; remember its value in a map *)
-  let global_vars : L.llvalue StringMap.t =
-    let global_var m (t, n) =
-      let init = match t with
-          A.Float -> L.const_float (ltype_of_typ t) 0.0
-        | A.String -> L.const_stringz context ""
-        | A.Exec   -> L.const_named_struct exec_t [| L.const_stringz context ""; L.const_stringz context "" |]
-        | _ -> L.const_int (ltype_of_typ t) 0
-      in StringMap.add n (L.define_global n init the_module) m in
-    List.fold_left global_var StringMap.empty stmt in *)
+  let build_function_body fdecl =
+    let (the_function, _) = StringMap.find fdecl.sfname function_decls in
+    let func_builder = L.builder_at_end context (L.entry_block the_function) in
 
+    let add_formal (curr_symbol_table : symbol_table) (t, n) p =
+      let old_map = curr_symbol_table.variables in
+      let variable = L.build_alloca (ltype_of_typ t) n func_builder in
+      let _ = L.build_store p variable func_builder in
+      let new_map = StringMap.add n variable old_map in
+      { variables = new_map ; parent = curr_symbol_table.parent }
+    in
+    let formals_table = List.fold_left2 add_formal { variables = StringMap.empty ; parent = None } fdecl.sformals
+        (Array.to_list (L.params the_function))
+    in let _ = (List.fold_left_map stmt (formals_table, func_builder) (fdecl.sbody))
+    in ()
+  in
+  let _ = List.iter build_function_body functions in
+  let _ = (List.fold_left_map stmt (curr_symbol_table, main_builder) (List.rev stmts)) in
+  let _ = L.build_ret (L.const_int i32_t 0) main_builder in
   the_module

@@ -1,0 +1,5 @@
+void echo_test() {
+  exec e = <"echo" withargs ["hello world"]>;
+  ./e;
+  return;
+}
