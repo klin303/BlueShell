@@ -1,2 +1,15 @@
 int x = 1;
-[x, 2];
+int y = 2;
+list of int l = [x, y];
+
+char c = 'a';
+char d = 'b';
+list of char ll = [c, d];
+
+string s = "abc";
+string t = "def";
+list of string lll = [s, t];
+
+float f = 1.1;
+float g = 2.2;
+list of float llll = [f, g];

@@ -35,7 +35,7 @@ let translate (stmts, functions) =
   in
   let list_t     = L.struct_type context [| L.pointer_type i8_t (* value *) ; L.pointer_type i8_t (* next*) |]
   in
-  let exec_t     = L.struct_type context [| string_t (* path *) ; L.pointer_type list_t (* args *) |]
+  let exec_t     = L.struct_type context [| L.pointer_type string_t (* path *) ; L.pointer_type list_t (* args *) |]
   (* Create an LLVM module -- this is a "container" into which we'll
      generate actual code *)
   and the_module = L.create_module context "BlueShell" in
@@ -80,12 +80,30 @@ let translate (stmts, functions) =
   in
   let rec expr (curr_symbol_table : symbol_table) builder ((_, e) : sexpr) =
     match e with
-      SLiteral x -> (curr_symbol_table, L.const_int i32_t x)
-    | SFliteral l -> (curr_symbol_table, L.const_float_of_string float_t l)
-    | SBoolLit b -> (curr_symbol_table, L.const_int i1_t (if b then 1 else 0))
+      SLiteral x -> let int_val = L.const_int i32_t x in (* this leaks memory
+      but who cares *)
+        let int_mem = L.build_alloca i32_t "int_mem" builder in
+        let _ = L.build_store int_val int_mem builder in
+        (curr_symbol_table, int_mem)
+    | SFliteral l -> let float_val = L.const_float_of_string float_t l in (* this *)
+        let float_mem = L.build_alloca float_t "float_mem" builder in
+        let _ = L.build_store float_val float_mem builder in
+        (curr_symbol_table, float_mem)
+    | SBoolLit b -> let bool_val = L.const_int i1_t (if b then 1 else 0) in (* this *)
+        let bool_mem = L.build_alloca i1_t "bool_mem" builder in
+        let _ = L.build_store bool_val bool_mem builder in
+        (curr_symbol_table, bool_mem)      
     | SId s -> (curr_symbol_table, L.build_load  (lookup curr_symbol_table s) s builder)
-    | SChar c -> (curr_symbol_table, L.build_global_stringptr c "char" builder)
-    | SString s -> (curr_symbol_table, L.build_global_stringptr s "string" builder)
+    | SChar c -> 
+      let char_ptr = L.build_global_stringptr c "char" builder in
+      let dbl_char_ptr = L.build_alloca string_t "double_char_ptr" builder in
+      let _ = L.build_store char_ptr dbl_char_ptr builder in
+      (curr_symbol_table, dbl_char_ptr)
+    | SString s -> 
+      let string_ptr = L.build_global_stringptr s "string" builder in
+      let dbl_string_ptr = L.build_alloca string_t "double_string_ptr" builder in
+      let _ = L.build_store string_ptr dbl_string_ptr builder in
+      (curr_symbol_table, dbl_string_ptr)
     | SNoexpr -> (curr_symbol_table, L.const_int i32_t 0)
     | SExec (e1, e2) -> let struct_space = L.build_malloc exec_t "struct_space" builder in
                         let path_ptr = L.build_struct_gep struct_space 0 "path_ptr" builder in
@@ -170,7 +188,8 @@ let translate (stmts, functions) =
         Run ->
               let (_, exec) = expr curr_symbol_table builder e in
 
-              let path_ptr = L.build_struct_gep exec 0 "path_ptr" builder in
+              let dbl_path_ptr = L.build_struct_gep exec 0 "dbl_path_ptr" builder in
+              let path_ptr = L.build_load dbl_path_ptr "path_ptr" builder in
               let path = L.build_load path_ptr "path" builder in
               let args_ptr = L.build_struct_gep exec 1 "args_ptr" builder in
               let args = L.build_load args_ptr "args" builder in
@@ -182,8 +201,8 @@ let translate (stmts, functions) =
       | first :: rest -> let (_, value) = expr curr_symbol_table builder first
       in
                         (* allocate space for the element and store *)
-                        let value_ptr = L.build_malloc (ltype_of_typ (fst
-                        first)) "value_ptr" builder in
+                        let value_ptr = L.build_malloc (L.pointer_type (ltype_of_typ (fst
+                        first))) "value_ptr" builder in
                           (* to do: strings are pointers but other things are
                           not *)
                         let _ = L.build_store value value_ptr builder in
@@ -198,7 +217,7 @@ let translate (stmts, functions) =
 
                         let (_, list_ptr) = expr curr_symbol_table builder (List_type (fst first), SList(rest))
                         in
-
+                        
                         let casted_ptr_ptr = L.build_pointercast struct_ptr_ptr (L.pointer_type (L.pointer_type list_t)) "casted_ptr_ptr" builder in
                         let _ = L.build_store list_ptr casted_ptr_ptr builder in
                         let casted_val_ptr = L.build_pointercast struct_val_ptr (L.pointer_type (L.pointer_type i8_t)) "casted_val_ptr" builder in
@@ -210,7 +229,8 @@ let translate (stmts, functions) =
                         (* use build store *)
       | SAssign (s, e) -> let (_, e') = expr curr_symbol_table builder e in
                           let _  = L.build_store e' (lookup curr_symbol_table s) builder in (curr_symbol_table, e')
-      | SBind (ty, n)  -> let ptr = L.build_malloc ( L.pointer_type (ltype_of_typ ty)) "variable ptr" builder in
+      | SBind (ty, n)  -> 
+          let ptr = L.build_malloc ( L.pointer_type (ltype_of_typ ty)) "variable ptr" builder in
                           let new_sym_table = StringMap.add n ptr curr_symbol_table.variables in
                           ({ variables = new_sym_table; parent =
                           curr_symbol_table.parent }, ptr)

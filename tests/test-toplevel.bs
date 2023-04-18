@@ -1,1 +1,2 @@
-./<"./toplevel.native" withargs ["-s", "./sast-tests/test-function1.bs"]>;
+list of string l = ["-s", "./sast-tests/test-function1.bs"];
+./<"./toplevel.native" withargs l>;

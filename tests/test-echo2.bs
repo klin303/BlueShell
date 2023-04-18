@@ -1,0 +1,3 @@
+list of string l = ["hello world"];
+exec e = < "echo" withargs l>;
+./e;

@@ -1,0 +1,5 @@
+string hello = "hello world";
+list of string l = [hello];
+
+exec e = <"echo" withargs l>;
+./e;

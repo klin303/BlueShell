@@ -9,7 +9,7 @@ Arguments: char* representing path, char* array representing arguments
 */
 
 struct exec {
-    void *val;
+    void **val;
     struct exec* next;
 };
 
@@ -26,8 +26,9 @@ int execvp_helper(char *path, struct exec *orig_args) {
         args_copy = orig_args;
         args[0] = path;
         for (int j = 0; j < i; j++) {
-            args[j + 1] = *(char **)(args_copy->val);
-            args_copy = args_copy->next;
+          char** temp = *(char ***)(args_copy->val);
+          args[j + 1] = *temp;
+          args_copy = args_copy->next;
         }
         int rc = fork();
         int status = 0;
