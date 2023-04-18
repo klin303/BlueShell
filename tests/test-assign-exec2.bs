@@ -1,3 +1,0 @@
-exec e;
-e = <"echo" withargs ["hello world"]>;
-./e;

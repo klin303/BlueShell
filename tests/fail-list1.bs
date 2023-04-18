@@ -1,0 +1,3 @@
+// creates a list where the type of the list does not match the elements
+
+list of string l = [1];

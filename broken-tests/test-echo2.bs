@@ -1,3 +1,5 @@
+// tests assignment of lists with strings
+
 list of string l = ["hello world"];
 exec e = < "echo" withargs l>;
 ./e;

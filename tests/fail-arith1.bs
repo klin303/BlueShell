@@ -1,0 +1,6 @@
+// detects binop between two types which do not match
+
+int a = 0;
+float b = 0.0;
+
+a + b;

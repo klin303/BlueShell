@@ -1,3 +1,5 @@
+// tests construction of lists with variables
+
 string hello = "hello world";
 list of string l = [hello];
 

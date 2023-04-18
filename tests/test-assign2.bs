@@ -1,2 +1,4 @@
+// tests assignment of an executable to a variable
+
 exec e = <"echo" withargs ["hello hello"]>;
 ./e;

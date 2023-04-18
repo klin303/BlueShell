@@ -67,14 +67,10 @@ FAILS = $(shell find tests -type f -name 'fail*.bs' -exec basename {} \;)
 TESTFILES = $(TESTS) $(TESTS:%.bs=gsts/%.gst) \
 		$(FAILS) $(FAILS:%.bs=gsts/%.gst)
 
-ZIPFILES = ast.ml scanner.mll toplevel.ml parser.mly sast.ml semant.ml \
-		   codegen.ml _tags exec.c testall.sh compile.sh README Makefile \
-		   $(TESTFILES:%=tests/%)
-
-
 # zips files and tests together
 bostonbitpackers.zip : $(ZIPFILES)
-	zip bostonbitpackers.zip $(ZIPFILES)
+	mkdir blueshell && cp $(ZIPFILES) blueshell \
+	&& zip -r bostonbitpackers.zip blueshell && rm -r blueshell
 
 # prints the list of tests which should pass
 

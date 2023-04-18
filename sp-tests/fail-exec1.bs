@@ -1,0 +1,5 @@
+// detects non-executable used with run 
+
+float a = 0.0;
+
+./a;
