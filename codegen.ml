@@ -33,7 +33,7 @@ let translate (stmts, functions) =
   in
   let string_t   = L.pointer_type i8_t
   in
-  let list_t     = L.struct_type context [| L.pointer_type i8_t (* value *) ; L.pointer_type i8_t (* next*) |]
+  let list_t     = L.struct_type context [| L.pointer_type i8_t (* value *) ; L.pointer_type i8_t (* next*) ; i32_t |]
   in
   let exec_t     = L.struct_type context [| L.pointer_type string_t (* path *) ; L.pointer_type list_t (* args *) |]
   (* Create an LLVM module -- this is a "container" into which we'll
@@ -53,7 +53,7 @@ let translate (stmts, functions) =
     | _ -> raise (Failure "ltype_of_typ fail")
   in
   let execvp_t : L.lltype =
-      L.var_arg_function_type i32_t [| L.pointer_type i8_t;  L.pointer_type list_t ; i32_t |] in
+      L.var_arg_function_type i32_t [| L.pointer_type i8_t;  L.pointer_type list_t |] in
   let execvp_func : L.llvalue =
      L.declare_function "execvp_helper" execvp_t the_module in
 
@@ -117,8 +117,12 @@ let translate (stmts, functions) =
           let _ = L.build_store e2' ptr builder in
           (new_symbol_table, e2')
         | Add -> (match t with
-          Float -> (curr_symbol_table'', L.build_fadd e1' e2' "tmp" builder)
-          | Int -> (curr_symbol_table'', L.build_add e1' e2' "tmp" builder)
+          Float -> (curr_symbol_table'', L.build_fadd (L.build_load e1' "left side of add" builder ) (L.build_load e2' "right side of add" builder) "tmp" builder)
+          | Int ->
+            let int_mem = L.build_alloca i32_t "int_mem" builder in
+            let new_int =L.build_add (L.build_load e1' "left side of add" builder) (L.build_load e2' "right side of add" builder) "tmp" builder in
+            let _ = L.build_store new_int int_mem builder in
+            (curr_symbol_table'', int_mem)
           | Exec -> raise (Failure "exec add not implemented yet")
           | _ -> raise (Failure "semant should have caught add with invalid types")
         )
@@ -180,18 +184,18 @@ let translate (stmts, functions) =
     )
     | SPreUnop(op, e) -> (match op with
         Run ->
-            let (exp, sexp) = e in
+            (* let (exp, sexp) = e in
             (match sexp with 
               (SId _) -> raise (Failure "hello")
               | _ -> raise (Failure "yo"))
-              (* (let enum_val = (match exp with
+              (let enum_val = (match exp with
                 List_type Int -> L.const_int i32_t 0
               | List_type Float -> L.const_int i32_t 1
               | List_type Bool -> L.const_int i32_t 2
               | List_type Char -> L.const_int i32_t 3
               | List_type String -> L.const_int i32_t 4
               | _ -> raise (Failure "semant should have caught invalid args type"))
-              in
+              in *)
               let (_, exec) = expr curr_symbol_table function_decls builder e in
 
               let dbl_path_ptr = L.build_struct_gep exec 0 "dbl_path_ptr" builder in
@@ -199,25 +203,41 @@ let translate (stmts, functions) =
               let path = L.build_load path_ptr "path" builder in
               let args_ptr = L.build_struct_gep exec 1 "args_ptr" builder in
               let args = L.build_load args_ptr "args" builder in
-              (curr_symbol_table, L.build_call execvp_func [| path ; args ; enum_val |] "execvp" builder))
-              | _ -> raise (Failure "not an exec in run")) *)
+              (curr_symbol_table, L.build_call execvp_func [| path ; args |] "execvp" builder)
+              (* | _ -> raise (Failure "not an exec in run")) *)
               
       | _   -> raise (Failure "preuop not implemented"))
     | SList l -> (match l with
       [] -> (curr_symbol_table, L.const_pointer_null (L.pointer_type list_t))
                                       (* pointer to first element *)
-      | first :: rest -> let (_, value) = expr curr_symbol_table function_decls builder first
-      in
+      | first :: rest ->
+                        let enum_type = match (fst first) with
+                        Int -> L.const_int i32_t 0
+                        | Float -> L.const_int i32_t 1
+                        | Bool -> L.const_int i32_t 2
+                        | Char -> L.const_int i32_t 3
+                        | String -> L.const_int i32_t 4
+                        | _  -> L.const_int i32_t 5
+                        in
+                        let (_, value) = expr curr_symbol_table function_decls builder first
+                        in
+                        (* let ty_string = L.string_of_lltype (ltype_of_typ (fst
+                        first)) in *)
                         (* allocate space for the element and store *)
                         let value_ptr = L.build_malloc (L.pointer_type (ltype_of_typ (fst
                         first))) "value_ptr" builder in
+                        (* let ty_ptr = L.build_malloc (L.pointer_type i32_t) "ty_ptr" builder in *)
                           (* to do: strings are pointers but other things are
                           not *)
                         let _ = L.build_store value value_ptr builder in
                         (* allocate and fill a list node *)
+                        (* let _ = L.build_store ty_string ty_ptr builder in *)
+                        (* allocate and fill a list node *)
 
                         let struct_space = L.build_malloc list_t "list_node" builder in
                         let struct_val_ptr = L.build_struct_gep struct_space 0
+                        "struct_val_ptr" builder in
+                        let struct_ty_ptr = L.build_struct_gep struct_space 2
                         "struct_val_ptr" builder in
 
                         let struct_ptr_ptr = L.build_struct_gep struct_space 1
@@ -230,7 +250,10 @@ let translate (stmts, functions) =
                         let _ = L.build_store list_ptr casted_ptr_ptr builder in
                         let casted_val_ptr = L.build_pointercast struct_val_ptr (L.pointer_type (L.pointer_type i8_t)) "casted_val_ptr" builder in
                         let casted_val = L.build_pointercast value_ptr (L.pointer_type i8_t) "casted_val" builder in
+                        let casted_ty_ptr = L.build_pointercast struct_ty_ptr (L.pointer_type i32_t) "casted_ty_ptr" builder in
+                        let casted_ty = L.build_pointercast enum_type i32_t "casted_ty" builder in
                         let _ = L.build_store casted_val casted_val_ptr builder in
+                        let _ = L.build_store casted_ty casted_ty_ptr builder in
                         (* put value of element into the allocated space *)
                         (curr_symbol_table, struct_space ))
 

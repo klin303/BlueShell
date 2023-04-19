@@ -12,13 +12,14 @@ Arguments: char* representing path, char* array representing arguments
 struct exec {
     void **val;
     struct exec* next;
+    int typ;
 };
 
-enum Type { INT = 0, FLOAT = 1, BOOL = 2, CHAR = 3, STRING = 4 };
+enum Type { INT = 0, FLOAT = 1, BOOL = 2, CHAR = 3, STRING = 4, OTHER = 5};
 
 
 
-int execvp_helper(char *path, struct exec *orig_args, int typ) {
+int execvp_helper(char *path, struct exec *orig_args) {
         int i = 0;
         struct exec *args_copy = orig_args;
 
@@ -35,6 +36,7 @@ int execvp_helper(char *path, struct exec *orig_args, int typ) {
         args[0] = path;
         for (int j = 0; j < i; j++) {
           str = malloc(32);
+          int typ = orig_args->typ;
           switch (typ) {
             case INT:
               sprintf(str, "%d", **(int **)(args_copy->val));
@@ -57,6 +59,10 @@ int execvp_helper(char *path, struct exec *orig_args, int typ) {
               temp = *(char ***)(args_copy->val);
               strcpy(str, *temp);
               break;
+            case OTHER:
+                fprintf(stderr, "Can only have lists of ints, bools, floats, chars, or string in executable");
+                exit(1);
+
             }
               // str = sprintf(stf, "%f", **(float **)(args_copy->val));
           // char** temp = *(char ***)(args_copy->val);
