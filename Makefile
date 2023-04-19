@@ -72,12 +72,12 @@ SAST_TESTFILES = $(SAST_TESTS) $(SAST_TESTS:%.bs=gsts/%.gst) \
 
 ZIPFILES = ast.ml scanner.mll toplevel.ml parser.mly sast.ml semant.ml \
 		   codegen.ml _tags exec.c testall.sh compile.sh README Makefile \
-		   $(TESTFILES:%=tests/%) $(SAST_TESTFILES:%=sast-tests/%)
+			tests sast-tests
 
 # zips files and tests together
 bostonbitpackers.zip : $(ZIPFILES)
-	mkdir blueshell && cp $(ZIPFILES) blueshell \
-	&& zip -r bostonbitpackers.zip blueshell && rm -r blueshell
+	mkdir blueshell && cp -r $(ZIPFILES) blueshell && \
+	zip -r bostonbitpackers.zip blueshell && rm -r blueshell
 
 # prints the list of tests which should pass
 
