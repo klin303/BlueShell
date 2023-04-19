@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include "string.h"
 
 /* execvp_helper
 Purpose: Forks and calls execvp on the path and arguments, interfacing with the Blue Shell codegen.
@@ -13,9 +14,16 @@ struct exec {
     struct exec* next;
 };
 
-int execvp_helper(char *path, struct exec *orig_args) {
+enum Type { INT = 0, FLOAT = 1, BOOL = 2, CHAR = 3, STRING = 4 };
+
+
+
+int execvp_helper(char *path, struct exec *orig_args, int typ) {
         int i = 0;
         struct exec *args_copy = orig_args;
+
+        char* str;
+        char** temp;
 
         while (args_copy != NULL) {
             i += 1;
@@ -26,10 +34,36 @@ int execvp_helper(char *path, struct exec *orig_args) {
         args_copy = orig_args;
         args[0] = path;
         for (int j = 0; j < i; j++) {
-          char** temp = *(char ***)(args_copy->val);
-          args[j + 1] = *temp;
+          str = malloc(32);
+          switch (typ) {
+            case INT:
+              sprintf(str, "%d", **(int **)(args_copy->val));
+              break;
+            case FLOAT:
+              sprintf(str, "%f", **(float **)(args_copy->val));
+              break;
+            case BOOL:
+              if (**(int **)(args_copy->val) == 0) {
+                strcpy(str, "false");
+              } else {
+                strcpy(str, "true");
+              }
+              break;
+            case CHAR:
+              temp = *(char ***)(args_copy->val);
+              strcpy(str, *temp);
+              break;
+            case STRING:
+              temp = *(char ***)(args_copy->val);
+              strcpy(str, *temp);
+              break;
+            }
+              // str = sprintf(stf, "%f", **(float **)(args_copy->val));
+          // char** temp = *(char ***)(args_copy->val);
+          args[j + 1] = str;
           args_copy = args_copy->next;
         }
+
         int rc = fork();
         int status = 0;
 

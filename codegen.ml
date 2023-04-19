@@ -53,7 +53,7 @@ let translate (stmts, functions) =
     | _ -> raise (Failure "ltype_of_typ fail")
   in
   let execvp_t : L.lltype =
-      L.var_arg_function_type i32_t [| L.pointer_type i8_t;  L.pointer_type list_t |] in
+      L.var_arg_function_type i32_t [| L.pointer_type i8_t;  L.pointer_type list_t ; i32_t |] in
   let execvp_func : L.llvalue =
      L.declare_function "execvp_helper" execvp_t the_module in
 
@@ -180,6 +180,18 @@ let translate (stmts, functions) =
     )
     | SPreUnop(op, e) -> (match op with
         Run ->
+            let (exp, sexp) = e in
+            (match sexp with 
+              (SId _) -> raise (Failure "hello")
+              | _ -> raise (Failure "yo"))
+              (* (let enum_val = (match exp with
+                List_type Int -> L.const_int i32_t 0
+              | List_type Float -> L.const_int i32_t 1
+              | List_type Bool -> L.const_int i32_t 2
+              | List_type Char -> L.const_int i32_t 3
+              | List_type String -> L.const_int i32_t 4
+              | _ -> raise (Failure "semant should have caught invalid args type"))
+              in
               let (_, exec) = expr curr_symbol_table function_decls builder e in
 
               let dbl_path_ptr = L.build_struct_gep exec 0 "dbl_path_ptr" builder in
@@ -187,7 +199,9 @@ let translate (stmts, functions) =
               let path = L.build_load path_ptr "path" builder in
               let args_ptr = L.build_struct_gep exec 1 "args_ptr" builder in
               let args = L.build_load args_ptr "args" builder in
-              (curr_symbol_table, L.build_call execvp_func [| path ; args |] "execvp" builder)
+              (curr_symbol_table, L.build_call execvp_func [| path ; args ; enum_val |] "execvp" builder))
+              | _ -> raise (Failure "not an exec in run")) *)
+              
       | _   -> raise (Failure "preuop not implemented"))
     | SList l -> (match l with
       [] -> (curr_symbol_table, L.const_pointer_null (L.pointer_type list_t))

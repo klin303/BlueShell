@@ -122,7 +122,7 @@ let check (stmts, functions) =
       String ->
         (match ty2 with
           (* !!!!!!!!CHANGE TO ACCEPT AUTOCASTING!!!!!!!!!!! *)
-          List_type String -> (curr_symbol_table, (Exec, (SExec ((ty1, e1'), (ty2, e2')))))
+          List_type ty -> (curr_symbol_table, (Exec, (SExec ((ty1, e1'), (ty2, e2')))))
           | EmptyList -> (curr_symbol_table, (Exec, (SExec ((ty1, e1'), (List_type String, SList [])))))
           | _ -> raise (Failure ("args must be a list of string")))
       | _ -> raise (Failure ("path must be a string")))
