@@ -1,9 +1,0 @@
-list of int ls = [1 , 2];
-ls = 1 :: ls;
-
-ls = 2 :: ls;
-ls = 3 :: [];
-list of int arr = 3 :: [];
-
-list of string strs = ["1"];
-"2" :: strs;

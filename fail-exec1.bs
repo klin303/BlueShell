@@ -1,1 +1,0 @@
-exec e = < "echo" withargs [1] >;

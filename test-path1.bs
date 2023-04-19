@@ -1,4 +1,0 @@
-exec e = <"hello">
-$e;
-string path = $e;
-$e = "yo";

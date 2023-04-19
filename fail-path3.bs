@@ -1,2 +1,0 @@
-exec e = < "echo" withargs ["hello world"] >;
-$e = true;

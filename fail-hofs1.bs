@@ -1,3 +1,0 @@
-void foo(string s) {  }
-
-function (void) foo2 = foo;

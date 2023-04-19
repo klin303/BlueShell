@@ -1,5 +1,0 @@
-if (bool b = true) {
-  bool c = b;
-} else {
-  bool d = b;
-}

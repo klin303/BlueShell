@@ -1,2 +1,0 @@
-list_of int x = [2,3];
-string s = x[1];

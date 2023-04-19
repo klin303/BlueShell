@@ -1,6 +1,0 @@
-int a = 1;
-int b = 300;
-a < b;
-a <= b;
-a > b;
-a >= b;

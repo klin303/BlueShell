@@ -1,3 +1,0 @@
-exec a = < "echo" >;
-exec e = < "echo" withargs [] >;
-exec v = e | a;

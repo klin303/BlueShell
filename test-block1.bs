@@ -1,8 +1,0 @@
-{
-  int a = 1;
-  char c = 'c';
-  {
-    string a = "a";
-    exec c = <"ls">;
-  }
-}

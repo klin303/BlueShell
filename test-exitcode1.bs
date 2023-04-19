@@ -1,2 +1,0 @@
-exec e = <"hello" withargs ["a", "b", "c"]>;
-e?;
