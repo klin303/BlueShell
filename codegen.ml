@@ -43,7 +43,7 @@ let translate (stmts, functions) =
   (* Convert BlueShell types to LLVM types *)
   let ltype_of_typ = function
       A.Int     -> i32_t
-    | A.Bool    -> i1_t
+    | A.Bool    -> i32_t
     | A.Float   -> float_t
     | A.Void    -> void_t
     | A.Char    -> string_t
@@ -83,8 +83,8 @@ let translate (stmts, functions) =
         let float_mem = L.build_alloca float_t "float_mem" builder in
         let _ = L.build_store float_val float_mem builder in
         (curr_symbol_table, float_mem)
-    | SBoolLit b -> let bool_val = L.const_int i1_t (if b then 1 else 0) in (* this *)
-        let bool_mem = L.build_alloca i1_t "bool_mem" builder in
+    | SBoolLit b -> let bool_val = L.const_int i32_t (if b then 1 else 0) in (* this *)
+        let bool_mem = L.build_alloca i32_t "bool_mem" builder in
         let _ = L.build_store bool_val bool_mem builder in
         (curr_symbol_table, bool_mem)
     | SId s -> (curr_symbol_table, L.build_load  (lookup curr_symbol_table s) s builder)

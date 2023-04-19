@@ -1,0 +1,7 @@
+bool arg1 = false;
+bool arg2 = true;
+
+list of bool arr = [arg1,arg2];
+
+exec e = <"echo" withargs arr>;
+./e;
