@@ -1,0 +1,3 @@
+// tests running an executable with a single argument 
+
+./< "echo" withargs ["hello world"] >;

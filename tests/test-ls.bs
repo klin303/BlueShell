@@ -1,2 +1,0 @@
-// creates and runs an executable with "ls" as its path.
-./<"ls">;

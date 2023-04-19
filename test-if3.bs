@@ -1,0 +1,5 @@
+if (bool b = true) {
+  bool c = b;
+} else if (b) {
+  bool d = b;
+}

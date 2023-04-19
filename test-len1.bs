@@ -1,0 +1,4 @@
+list_of int l = [1];
+int x = len l;
+list_of string l_string = ["hello"];
+int x = len l_string;

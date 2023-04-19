@@ -1,0 +1,7 @@
+// tests running an executable with more than one argument
+
+string arg1 = "README";
+string arg2 = "README";
+
+exec e = <"cat" withargs [arg1, arg2]>;
+./e;

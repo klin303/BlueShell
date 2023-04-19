@@ -1,0 +1,9 @@
+int a = 1;
+int b = 2;
+a - b;
+a / b;
+
+float x = 5.0;
+float y = 6.2;
+x - y;
+x / y;

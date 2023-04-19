@@ -65,7 +65,14 @@ TESTS = $(shell find tests -type f -name 'test*.bs' -exec basename {} \;)
 FAILS = $(shell find tests -type f -name 'fail*.bs' -exec basename {} \;)
 
 TESTFILES = $(TESTS) $(TESTS:%.bs=gsts/%.gst) \
-		$(FAILS) $(FAILS:%.bs=gsts/%.gst)
+			$(FAILS) $(FAILS:%.bs=gsts/%.gst)
+
+SAST_TESTFILES = $(SAST_TESTS) $(SAST_TESTS:%.bs=gsts/%.gst) \
+				 $(SAST_FAILS) $(SAST_FAILS:%.bs=gsts/%.gst) \
+
+ZIPFILES = ast.ml scanner.mll toplevel.ml parser.mly sast.ml semant.ml \
+		   codegen.ml _tags exec.c testall.sh compile.sh README Makefile \
+		   $(TESTFILES:%=tests/%) $(SAST_TESTFILES:%=sast-tests/%)
 
 # zips files and tests together
 bostonbitpackers.zip : $(ZIPFILES)
@@ -94,7 +101,7 @@ clean_tests:
 
 # removes .exes produced
 clean_exes:
-	rm -rf *.exes
+	rm -rf *.exe
 
 clean_intermediates:
 	rm -rf *.s *.llvm

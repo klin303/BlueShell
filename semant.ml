@@ -79,14 +79,14 @@ let check (stmts, functions) =
 
 
   (* Add function name to symbol table *)
-  let add_func map fd =
+  (* let add_func map fd =
     let dup_err = "duplicate function " ^ fd.fname
     and make_err er = raise (Failure er)
     and n = fd.fname (* Name of the function *)
     in match fd with (* No duplicate functions or redefinitions of built-ins *)
         _ when StringMap.mem n map -> make_err dup_err
        | _ ->  StringMap.add n fd map
-  in
+  in *)
 
   let add_func_symbol_table map fd =
     let n = fd.fname (* Name of the function *)
@@ -94,18 +94,18 @@ let check (stmts, functions) =
     add_bind map (ty, n)
   in
   (* Collect all other function names into one symbol table *)
-  let function_decls = List.fold_left add_func StringMap.empty functions
+  (* let function_decls = List.fold_left add_func StringMap.empty functions
   (* Start with empty environment and map over statements, carrying updated
   environment as you go *)
-  in
+  in *)
   let empty_env = { variables = StringMap.empty ; parent = None }
   in
   let env_with_functions = List.fold_left add_func_symbol_table empty_env functions
   in
-  let find_func s =
+  (* let find_func s =
     try StringMap.find s function_decls
     with Not_found -> raise (Failure ("unrecognized function " ^ s))
-  in
+  in *)
 
   let rec expr (curr_symbol_table : symbol_table) expression =
   match expression with
@@ -339,7 +339,7 @@ let check (stmts, functions) =
   in
 
   let check_func symbol_table func =
-    let map = StringMap.empty in
+    (* let map = StringMap.empty in *)
     let add_formals formal_map name typ =
       StringMap.add name typ formal_map
     in

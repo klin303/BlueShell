@@ -1,0 +1,2 @@
+list of int bro = [1, 2, 3];
+list of char sorry = ['a', 'b', 'c'];

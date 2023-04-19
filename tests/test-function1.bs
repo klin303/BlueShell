@@ -3,3 +3,5 @@ void echo_test() {
   ./e;
   return;
 }
+
+echo_test();

@@ -1,0 +1,3 @@
+bool b = true;
+bool a = false;
+a - b;

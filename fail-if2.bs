@@ -1,0 +1,4 @@
+if (bool b = true) {
+    true;
+}
+b = false;

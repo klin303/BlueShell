@@ -93,6 +93,8 @@ run_gsts_tests()
 
 }
 
+
+
 check_success() {
     if [ $1 -ne 0 ]
         # last command failed
@@ -106,6 +108,7 @@ check_success() {
 
 # compiles one .bs file into an executable
 compile_one_test() {
+    echo $1
     ./toplevel.native < "tests/$1.bs" > $1.llvm
     check_success $?
     llc "-relocation-model=pic" $1.llvm
@@ -113,21 +116,17 @@ compile_one_test() {
     cc -c exec.c # links with our c file
     cc $1.llvm.s exec.o -o $1.exe
     check_success $?
-    cp $1.exe tests/
-    cd tests
 }
 
 
 run_single_test() {
     testname=$1
-    testpath="$testname.bs"
-    cd tests
+    testpath="tests/$testname.bs"
     if [ ! -f $testpath ]
     then
         echo "File $testpath doesn't exist"
         return
     fi
-    cd ../
     # we're in top dir
 
     compile_one_test $testname
@@ -135,22 +134,19 @@ run_single_test() {
     # copy exe into testing directory
     output="$testname.exe"
         echo "RUNNING TEST ${testname}......"
-    ./$output > "out/$testname.out"
-    # delete the executable
-    pwd
-    rm $output
+    ./$output > "tests/out/$testname.out"
 
     #compare with gst
-    gst="gsts/$testname.gst"
+    gst="tests/gsts/$testname.gst"
     if [ ! -f $gst ]
     then
         echo "File $gst does not exist"
         return
     else
-        diff "out/$testname.out" $gst > "diff/$testname.diff"
-        if [ -s "diff/$testname.diff" ]; then
+        diff "tests/out/$testname.out" $gst > "tests/diff/$testname.diff"
+        if [ -s "tests/diff/$testname.diff" ]; then
                 echo "ERROR: OUTPUT FOR $testname DOES NOT MATCH EXPECTED OUTPUT \n "
-                cat "diff/$testname.diff"
+                cat "tests/diff/$testname.diff"
             else
                 echo "PASSED \n"
         fi
@@ -158,6 +154,20 @@ run_single_test() {
     fi
 }
 
+run_fail_test() {
+    ftest=$1
+    echo "Running failure test $1..........."
+    file_name="tests/${ftest}.bs"
+    fail_standard="tests/gsts/${ftest}.gst"
+    ./toplevel.native -s < $file_name 2> "tests/out/$ftest.out"
+    diff "tests/out/$ftest.out" $fail_standard > "tests/diff/$ftest.diff"
+    if [ -s $ftest.diff ]; then
+        echo "ERROR: OUTPUT FOR ${ftest} DOES NOT MATCH EXPECTED OUTPUT \n "
+        cat $ftest.diff
+    else
+        echo "PASSED \n"
+    fi
+}
 
 run_all_tests() {
     # get all test names
@@ -170,8 +180,9 @@ run_all_tests() {
     done
     for test in $fail_tests
     do
-      name=${test::-3}
-      run_single_test $name
+      #name=${test::-3}
+      name=${test%.*}
+      run_fail_test $name
     done
     # for each test name call run single test on it
 }
@@ -238,7 +249,6 @@ make
 if [ $1 = "-a" ]
     then
     run_all_tests
-    cd ../
     if [ $# -eq 1 ]
     then
         echo "Removing all intermediate outputs (.s, .llvm, .exes, .out, and .diff) files..."
