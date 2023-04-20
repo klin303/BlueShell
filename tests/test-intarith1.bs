@@ -1,0 +1,14 @@
+//int a = 10;
+//int b = 2;
+//int c = 3;
+
+void print_int(int a) {
+    ./<"echo" withargs [a]>;
+    return;
+}
+
+print_int(5);
+print_int(10 / 2);
+print_int(10 * 2);
+print_int(10 - 2);
+print_int(10 + 2);

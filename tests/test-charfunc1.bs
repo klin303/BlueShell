@@ -1,0 +1,8 @@
+void print_char(char s) {
+    ./<"echo" withargs [s]>;
+    return;
+}
+
+print_char('1');
+print_char('\n');
+print_char('k');

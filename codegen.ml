@@ -29,7 +29,7 @@ let translate (stmts, functions) =
   and i8_t       = L.i8_type     context
   and i1_t       = L.i1_type     context
   and float_t    = L.double_type context
-  and void_t     = L.void_type   context
+  and void_t     = L.void_type context
   in
   let string_t   = L.pointer_type i8_t
   in
@@ -117,7 +117,11 @@ let translate (stmts, functions) =
           let _ = L.build_store e2' ptr builder in
           (new_symbol_table, e2')
         | Add -> (match t with
-          Float -> (curr_symbol_table'', L.build_fadd (L.build_load e1' "left side of add" builder ) (L.build_load e2' "right side of add" builder) "tmp" builder)
+          Float ->
+            let float_mem = L.build_alloca float_t "int_mem" builder in
+            let new_float =  L.build_fadd (L.build_load e1' "left side of add" builder ) (L.build_load e2' "right side of add" builder) "tmp" builder in
+            let _ = L.build_store new_float float_mem builder in
+            (curr_symbol_table'', float_mem)
           | Int ->
             let int_mem = L.build_alloca i32_t "int_mem" builder in
             let new_int =L.build_add (L.build_load e1' "left side of add" builder) (L.build_load e2' "right side of add" builder) "tmp" builder in
@@ -127,19 +131,43 @@ let translate (stmts, functions) =
           | _ -> raise (Failure "semant should have caught add with invalid types")
         )
         | Sub -> (match t with
-          Float -> (curr_symbol_table'', L.build_fsub e1' e2' "tmp" builder)
-          | Int -> (curr_symbol_table'', L.build_sub e1' e2' "tmp" builder)
+          Float ->
+            let float_mem = L.build_alloca float_t "int_mem" builder in
+            let new_float =  L.build_fsub (L.build_load e1' "left side of add" builder ) (L.build_load e2' "right side of add" builder) "tmp" builder in
+            let _ = L.build_store new_float float_mem builder in
+            (curr_symbol_table'', float_mem)
+          | Int ->
+            let int_mem = L.build_alloca i32_t "int_mem" builder in
+            let new_int =L.build_sub (L.build_load e1' "left side of add" builder) (L.build_load e2' "right side of add" builder) "tmp" builder in
+            let _ = L.build_store new_int int_mem builder in
+            (curr_symbol_table'', int_mem)
           | _ -> raise (Failure "semant should have caught sub with invalid types")
         )
         | Mult -> (match t with
-          Float -> (curr_symbol_table'', L.build_fmul e1' e2' "tmp" builder)
-          | Int -> (curr_symbol_table'', L.build_mul e1' e2' "tmp" builder)
+          Float ->
+            let float_mem = L.build_alloca float_t "int_mem" builder in
+            let new_float =  L.build_fmul (L.build_load e1' "left side of add" builder ) (L.build_load e2' "right side of add" builder) "tmp" builder in
+            let _ = L.build_store new_float float_mem builder in
+            (curr_symbol_table'', float_mem)
+          | Int ->
+            let int_mem = L.build_alloca i32_t "int_mem" builder in
+            let new_int =L.build_mul (L.build_load e1' "left side of add" builder) (L.build_load e2' "right side of add" builder) "tmp" builder in
+            let _ = L.build_store new_int int_mem builder in
+            (curr_symbol_table'', int_mem)
           | Exec -> raise (Failure "exec mul not implemented yet")
           | _ -> raise (Failure "semant should have caught mul with invalid types")
         )
         | Div -> (match t with
-          Float -> (curr_symbol_table'', L.build_fdiv e1' e2' "tmp" builder)
-          | Int -> (curr_symbol_table'', L.build_sdiv e1' e2' "tmp" builder)
+          Float ->
+            let float_mem = L.build_alloca float_t "int_mem" builder in
+            let new_float =  L.build_fdiv (L.build_load e1' "left side of add" builder ) (L.build_load e2' "right side of add" builder) "tmp" builder in
+            let _ = L.build_store new_float float_mem builder in
+            (curr_symbol_table'', float_mem)
+          | Int ->
+            let int_mem = L.build_alloca i32_t "int_mem" builder in
+            let new_int =L.build_sdiv (L.build_load e1' "left side of add" builder) (L.build_load e2' "right side of add" builder) "tmp" builder in
+            let _ = L.build_store new_int int_mem builder in
+            (curr_symbol_table'', int_mem)
           | _ -> raise (Failure "semant should have caught div with invalid types")
         )
         | Less -> (match t with
@@ -185,7 +213,7 @@ let translate (stmts, functions) =
     | SPreUnop(op, e) -> (match op with
         Run ->
             (* let (exp, sexp) = e in
-            (match sexp with 
+            (match sexp with
               (SId _) -> raise (Failure "hello")
               | _ -> raise (Failure "yo"))
               (let enum_val = (match exp with
@@ -205,7 +233,7 @@ let translate (stmts, functions) =
               let args = L.build_load args_ptr "args" builder in
               (curr_symbol_table, L.build_call execvp_func [| path ; args |] "execvp" builder)
               (* | _ -> raise (Failure "not an exec in run")) *)
-              
+
       | _   -> raise (Failure "preuop not implemented"))
     | SList l -> (match l with
       [] -> (curr_symbol_table, L.const_pointer_null (L.pointer_type list_t))
@@ -267,7 +295,7 @@ let translate (stmts, functions) =
                           curr_symbol_table.parent }, ptr)
       | SCall (f, args) ->
          let (fdef, fdecl)  = StringMap.find f function_decls in
-         let llargs = List.map snd (List.rev (List.map  (expr curr_symbol_table function_decls builder) (List.rev args))) in
+         let llargs = List.map snd (List.rev (List.map (expr curr_symbol_table function_decls builder) (List.rev args))) in
 	        let result = (match fdecl.styp with
                         A.Void -> ""
                       | _ -> f ^ "_result") in
@@ -287,8 +315,12 @@ let function_decls : (L.llvalue * sfunc_decl) StringMap.t =
     let function_decl m fdecl =
       let name = fdecl.sfname
       and formal_types =
-  Array.of_list (List.map (fun (t,_) -> ltype_of_typ t) fdecl.sformals)
-      in let ftype = L.function_type (ltype_of_typ fdecl.styp) formal_types in
+  Array.of_list (List.map (fun (t,_) -> L.pointer_type (ltype_of_typ t)) fdecl.sformals)
+      in let return_type =
+        (match fdecl.styp with
+        Void -> void_t
+        | _ -> (L.pointer_type (ltype_of_typ fdecl.styp)))
+      in let ftype = L.function_type return_type formal_types in
       StringMap.add name (L.define_function name ftype the_module, fdecl) m in
     List.fold_left function_decl StringMap.empty functions in
 
@@ -298,7 +330,7 @@ let function_decls : (L.llvalue * sfunc_decl) StringMap.t =
 
     let add_formal (curr_symbol_table : symbol_table) (t, n) p =
       let old_map = curr_symbol_table.variables in
-      let variable = L.build_alloca (ltype_of_typ t) n func_builder in
+      let variable = L.build_alloca (L.pointer_type (ltype_of_typ t)) n func_builder in
       let _ = L.build_store p variable func_builder in
       let new_map = StringMap.add n variable old_map in
       { variables = new_map ; parent = curr_symbol_table.parent }

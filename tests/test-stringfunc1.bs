@@ -1,0 +1,8 @@
+void print_string(string s) {
+    ./<"echo" withargs [s]>;
+    return;
+}
+
+print_string("hello world");
+print_string("\n");
+print_string("hi kenny");

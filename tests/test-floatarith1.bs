@@ -1,0 +1,10 @@
+void print_float(float a) {
+    ./<"echo" withargs [a]>;
+    return;
+}
+
+print_float(5.2);
+print_float(11.0 / 2.0);
+print_float(10.11 * 2.2);
+print_float(10.7 - 2.1);
+print_float(10.2 + 2.17);
