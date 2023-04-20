@@ -45,7 +45,7 @@ int execvp_helper(char *path, struct exec *orig_args) {
               sprintf(str, "%lf", **(double **)(args_copy->val));
               break;
             case BOOL:
-              if (**(int **)(args_copy->val) == 0) {
+              if ((**(int **)(args_copy->val) & 1) == 0) {
                 strcpy(str, "false");
               } else {
                 strcpy(str, "true");

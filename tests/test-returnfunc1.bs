@@ -1,0 +1,22 @@
+int add(int a, int b)  {
+    //./<"echo" withargs [a + b]>;
+    return a + b;
+}
+
+
+./<"echo" withargs [add(2,3)]>;
+
+float addf(float a, float b)  {
+    //./<"echo" withargs [a + b]>;
+    return a + b;
+}
+
+
+./<"echo" withargs [addf(2.3,3.2)]>;
+
+string echo(string a)  {
+    //./<"echo" withargs [a + b]>;
+    return a;
+}
+
+./<"echo" withargs [echo("hello")]>;

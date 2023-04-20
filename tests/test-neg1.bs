@@ -1,0 +1,4 @@
+int a = 2;
+./<"echo" withargs [-a]>;
+float b = 2.2;
+./<"echo" withargs [-b]>;

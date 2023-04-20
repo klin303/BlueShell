@@ -1,0 +1,9 @@
+void print_bool(bool b) {
+    ./<"echo" withargs [b]>;
+    return;
+}
+
+print_bool(true and true);
+print_bool(true && false);
+print_bool(false || true);
+print_bool(false or false);

@@ -1,0 +1,10 @@
+void print_bool(bool b) {
+    ./<"echo" withargs [b]>;
+    return;
+}
+print_bool(3 > 2);
+print_bool(3 >= 2);
+print_bool(3 == 2);
+print_bool(3 < 2);
+print_bool(3 <= 2);
+print_bool(3 != 2);
