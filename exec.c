@@ -42,7 +42,7 @@ int execvp_helper(char *path, struct exec *orig_args) {
               sprintf(str, "%d", **(int **)(args_copy->val));
               break;
             case FLOAT:
-              sprintf(str, "%f", **(float **)(args_copy->val));
+              sprintf(str, "%lf", **(double **)(args_copy->val));
               break;
             case BOOL:
               if (**(int **)(args_copy->val) == 0) {
