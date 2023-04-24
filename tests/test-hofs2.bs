@@ -1,0 +1,11 @@
+float addf(float a, float b)  {
+    ./<"echo" withargs [a + b]>;
+    return a + b;
+}
+
+void fake_hof(function (float -> float -> float) funk) {
+    funk(1.2, 3.4);
+    return;
+}
+
+fake_hof(addf);

@@ -10,9 +10,11 @@ open Sast
 
 module StringMap = Map.Make(String)
 
+type symbol_value = Llvalue of L.llvalue | FuncName of string
+
 type symbol_table = {
   (* Variables bound in current block *)
-  variables : L.llvalue StringMap.t;
+  variables : symbol_value StringMap.t;
   (* Enclosing scope *)
   parent : symbol_table option;
 }
@@ -41,7 +43,7 @@ let translate (stmts, functions) =
   and the_module = L.create_module context "BlueShell" in
 
   (* Convert BlueShell types to LLVM types *)
-  let ltype_of_typ = function
+  let rec ltype_of_typ = function
       A.Int     -> i32_t
     | A.Bool    -> i1_t
     | A.Float   -> float_t
@@ -50,6 +52,10 @@ let translate (stmts, functions) =
     | A.String  -> string_t
     | A.Exec    -> exec_t
     | A.List_type ty    -> list_t
+    | A.Function (ty_list, ty) -> let ret_type = L.pointer_type (ltype_of_typ ty) in
+                                 let ltype_helper ty1 =  (L.pointer_type (ltype_of_typ ty1)) in
+                                 let args_type =  Array.of_list (List.map ltype_helper ty_list ) in
+    L.function_type ret_type args_type
     | _ -> raise (Failure "ltype_of_typ fail")
   in
   let execvp_t : L.lltype =
@@ -70,8 +76,32 @@ let translate (stmts, functions) =
     with Not_found -> (* Try looking in outer blocks *)
       match curr_symbol_table.parent with
         Some(parent) -> lookup parent s
-      | _ -> raise (Failure ("codegen identifier not found"))
+      | _ -> raise Not_found
   in
+
+  let rec func_lookup (curr_symbol_table : symbol_table) function_decls s =
+    (* for functions, we want to make sure we don't have links from a higher scope table back down *)
+    let rec nested_lookup (curr_symbol_table : symbol_table) s =
+      try
+        (curr_symbol_table, StringMap.find s curr_symbol_table.variables)
+      with Not_found -> (* Try looking in outer blocks *)
+        match curr_symbol_table.parent with
+          Some(parent) -> nested_lookup parent s
+        | _ -> raise (Failure "name not found")
+    in
+
+    try
+      StringMap.find s function_decls
+    with Not_found ->
+      let (new_scope, name) = nested_lookup curr_symbol_table s in
+      (match name with
+        FuncName n -> 
+          (try StringMap.find n function_decls
+          with Not_found ->
+            func_lookup new_scope function_decls n)
+        | _ -> raise (Failure "not a function"))
+  in
+
   let rec expr (curr_symbol_table : symbol_table) function_decls builder ((_, e) : sexpr) =
     match e with
       SLiteral x -> let int_val = L.const_int i32_t x in (* this leaks memory
@@ -87,7 +117,12 @@ let translate (stmts, functions) =
         let bool_mem = L.build_alloca i1_t "bool_mem" builder in
         let _ = L.build_store bool_val bool_mem builder in
         (curr_symbol_table, bool_mem)
-    | SId s -> (curr_symbol_table, L.build_load  (lookup curr_symbol_table s) s builder)
+    | SId s -> 
+        let address = lookup curr_symbol_table s in
+        (match address with
+          Llvalue llval -> (curr_symbol_table, L.build_load llval s builder)
+        | FuncName name -> (curr_symbol_table, fst (StringMap.find name
+        function_decls)))
     | SChar c ->
       let char_ptr = L.build_global_stringptr c "char" builder in
       let dbl_char_ptr = L.build_alloca string_t "double_char_ptr" builder in
@@ -353,21 +388,37 @@ let translate (stmts, functions) =
                         (curr_symbol_table, struct_space ))
 
                         (* use build store *)
-      | SAssign (s, e) -> let (_, e') = expr curr_symbol_table function_decls builder e in
-                          let _  = L.build_store e' (lookup curr_symbol_table s) builder in (curr_symbol_table, e')
+      | SAssign (s, e) -> let address = lookup curr_symbol_table s in
+                          (match address with
+                            Llvalue llval -> 
+                              let (_, e') = expr curr_symbol_table function_decls builder e in
+                              let _  = L.build_store e' llval builder in (curr_symbol_table, e')
+                          | FuncName _ -> 
+                            (match e with
+                            (_, SId fname) -> let new_vars = StringMap.add s (FuncName(fname)) curr_symbol_table.variables in
+                                              ({ variables = new_vars ; parent = curr_symbol_table.parent }, L.const_stringz context fname)
+                            | _ -> raise (Failure "semant should have caught assignment to nonexistent function")))
       | SBind (ty, n)  ->
-          let ptr = L.build_malloc ( L.pointer_type (ltype_of_typ ty)) "variable ptr" builder in
-                          let new_sym_table = StringMap.add n ptr curr_symbol_table.variables in
-                          ({ variables = new_sym_table; parent =
-                          curr_symbol_table.parent }, ptr)
+        (match ty with
+          Function _ -> let new_sym_table = StringMap.add n (FuncName("")) curr_symbol_table.variables in
+                  ({ variables = new_sym_table ; parent = curr_symbol_table.parent }, L.const_stringz context n)
+          | _ ->  let ptr = L.build_malloc ( L.pointer_type (ltype_of_typ ty)) "variable ptr" builder in
+                  let new_sym_table = StringMap.add n (Llvalue (ptr)) curr_symbol_table.variables in
+                  ({ variables = new_sym_table ; parent = curr_symbol_table.parent }, ptr))
       | SCall (f, args) ->
-         let (fdef, fdecl)  = StringMap.find f function_decls in
-         let llargs = List.map snd (List.rev (List.map (expr curr_symbol_table function_decls builder) (List.rev args))) in
-	        let result = (match fdecl.styp with
-                        A.Void -> ""
-                      | _ -> f ^ "_result") in
-         (curr_symbol_table, L.build_call fdef (Array.of_list llargs) result builder)
-         | _ -> raise(Failure "Calling a non function")
+        let (fdef, fdecl) = try
+          let fptr = lookup curr_symbol_table f in
+            (match fptr with
+              FuncName name -> func_lookup curr_symbol_table function_decls name
+              | _ -> raise (Failure "semant should have caught call with not a function"))
+          with Not_found -> StringMap.find f function_decls
+        in
+        let llargs = List.map snd (List.rev (List.map (expr curr_symbol_table function_decls builder) (List.rev args))) in
+        let result = (match fdecl.styp with
+                      A.Void -> ""
+                    | _ -> f ^ "_result") in
+        (curr_symbol_table, L.build_call fdef (Array.of_list llargs) result builder)
+        | _ -> raise(Failure "Calling a non function")
 
       (* | _ -> raise (Failure "Expression not implemented yet") *)
   in
@@ -404,12 +455,15 @@ let function_decls : (L.llvalue * sfunc_decl) StringMap.t =
     let (the_function, _) = StringMap.find fdecl.sfname function_decls in
     let func_builder = L.builder_at_end context (L.entry_block the_function) in
 
-    let add_formal (curr_symbol_table : symbol_table) (t, n) p =
-      let old_map = curr_symbol_table.variables in
-      let variable = L.build_alloca (L.pointer_type (ltype_of_typ t)) n func_builder in
-      let _ = L.build_store p variable func_builder in
-      let new_map = StringMap.add n variable old_map in
-      { variables = new_map ; parent = curr_symbol_table.parent }
+    let add_formal (curr_symbol_table : symbol_table) ((t : A.typ), n) p =
+      (match t with
+        Function _ -> let new_map = StringMap.add n (FuncName("")) curr_symbol_table.variables in
+                      { variables = new_map ; parent = curr_symbol_table.parent }
+        | _ ->  let old_map = curr_symbol_table.variables in
+                let variable = L.build_alloca (L.pointer_type (ltype_of_typ t)) n func_builder in
+                let _ = L.build_store p variable func_builder in
+                let new_map = StringMap.add n (Llvalue(variable)) old_map in
+                { variables = new_map ; parent = curr_symbol_table.parent })
     in
     let formals_table = List.fold_left2 add_formal { variables = StringMap.empty ; parent = None } fdecl.sformals
         (Array.to_list (L.params the_function))

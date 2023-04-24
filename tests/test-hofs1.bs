@@ -1,0 +1,10 @@
+float addf(float a, float b)  {
+    ./<"echo" withargs [a + b]>;
+    return a + b;
+}
+
+function (float -> float -> float) add_func;
+add_func = addf;
+add_func(1.2, 3.4);
+
+./<"echo" withargs [add_func(1.2,3.4)]>;
