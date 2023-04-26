@@ -426,22 +426,45 @@ let translate (stmts, functions) =
     match statement with
       SReturn e -> (match fdecl_option with
         Some(fdecl) ->  (match fdecl.styp with
-                      Void -> ((curr_symbol_table, function_decls, builder, fdecl_option, func_llvalue), L.build_ret_void builder)
+                      Void -> let _ = L.build_ret_void builder in
+                        (curr_symbol_table, function_decls, builder, fdecl_option, func_llvalue)
                       | _ -> let ret_mem = L.build_malloc (ltype_of_typ fdecl.styp) "return malloc" builder in
                               let ret = L.build_load (snd (expr curr_symbol_table function_decls builder e)) "return load" builder in
                               let _ = L.build_store ret ret_mem builder in
-                      ((curr_symbol_table, function_decls, builder, fdecl_option, func_llvalue), L.build_ret ret_mem builder))
+                              let _ = L.build_ret ret_mem builder in
+                      (curr_symbol_table, function_decls, builder, fdecl_option, func_llvalue))
       | None -> raise (Failure "semant should have caught return outside of a function"))
     | SBlock sl ->
       let new_symbol_table = { variables = StringMap.empty ; parent = Some curr_symbol_table} in
-      let (_, llvalue_list) = List.fold_left_map stmt (new_symbol_table, function_decls, builder, fdecl_option, func_llvalue) sl
-      in
-      ((curr_symbol_table, function_decls, builder, fdecl_option, func_llvalue), List.hd (List.rev llvalue_list))
-    | SExpr e -> let (new_symbol_table, expr_val) = expr curr_symbol_table function_decls builder e in ((new_symbol_table, function_decls, builder, fdecl_option, func_llvalue), expr_val)
-    (* | SIf (predicate, then_stmt, else_stmt) ->
+      List.fold_left stmt (new_symbol_table, function_decls, builder, fdecl_option, func_llvalue) sl
+    | SExpr e -> let (new_symbol_table, expr_val) = expr curr_symbol_table function_decls builder e in (new_symbol_table, function_decls, builder, fdecl_option, func_llvalue)
+    | SIf (predicate, then_stmt, else_stmt) ->
       let (curr_symbol_table', bool_val) = expr curr_symbol_table function_decls builder predicate in
-      let merge_bb = L.append_block context "merge" the_function *)
-    | _ -> raise (Failure "Statement not implemented yet")
+      let merge_bb = L.append_block context "merge" func_llvalue in
+      let branch_instr = L.build_br merge_bb in
+      let then_bb = L.append_block context "then" func_llvalue in
+      let (_, _, then_builder, _, _) = stmt (curr_symbol_table', function_decls, (L.builder_at_end context then_bb), fdecl_option, func_llvalue) then_stmt in
+      let _ = L.build_br merge_bb then_builder in
+      let else_bb = L.append_block context "else" func_llvalue in
+      let (_, _, else_builder, _, _) = stmt (curr_symbol_table', function_decls, (L.builder_at_end context else_bb), fdecl_option, func_llvalue) else_stmt in
+      let _ = L.build_br merge_bb else_builder in
+      let dereferenced_bool = L.build_load bool_val "bool" builder in
+      let _ = L.build_cond_br dereferenced_bool then_bb else_bb builder in
+      (curr_symbol_table', function_decls, (L.builder_at_end context merge_bb), fdecl_option, func_llvalue)
+    | SWhile (predicate, body) ->
+      let pred_bb = L.append_block context "while" func_llvalue in
+      let _ = L.build_br pred_bb builder in
+      let body_bb = L.append_block context "while_body" func_llvalue in
+      let (_, _, while_builder, _, _) = stmt (curr_symbol_table, function_decls, (L.builder_at_end context body_bb), fdecl_option, func_llvalue) body in
+      let _ = L.build_br pred_bb while_builder in
+      let pred_builder = L.builder_at_end context pred_bb in
+      let (curr_symbol_table', bool_val) = expr curr_symbol_table function_decls pred_builder predicate in 
+      let dereferenced_bool = L.build_load bool_val "bool" pred_builder in
+      let merge_bb = L.append_block context "merge" func_llvalue in
+      let _ = L.build_cond_br dereferenced_bool body_bb merge_bb pred_builder in
+      (curr_symbol_table, function_decls, (L.builder_at_end context merge_bb), fdecl_option, func_llvalue)
+    | SFor (e1, e2, e3, body) ->
+      stmt (curr_symbol_table, function_decls, builder, fdecl_option, func_llvalue) (SBlock [SExpr e1 ; SWhile (e2, SBlock [body ; SExpr e3])])
   in
 let function_decls : (L.llvalue * sfunc_decl) StringMap.t =
     let function_decl m fdecl =
@@ -472,10 +495,10 @@ let function_decls : (L.llvalue * sfunc_decl) StringMap.t =
     in
     let formals_table = List.fold_left2 add_formal { variables = StringMap.empty ; parent = None } fdecl.sformals
         (Array.to_list (L.params the_function))
-    in let _ = (List.fold_left_map stmt (formals_table, function_decls, func_builder, Some fdecl, fst (StringMap.find fdecl.sfname function_decls)) (fdecl.sbody))
+    in let _ = (List.fold_left stmt (formals_table, function_decls, func_builder, Some fdecl, fst (StringMap.find fdecl.sfname function_decls)) (fdecl.sbody))
     in ()
   in
   let _ = List.iter build_function_body functions in
-  let _ = (List.fold_left_map stmt (curr_symbol_table, function_decls, main_builder, None, main_func) (List.rev stmts)) in
-  let _ = L.build_ret (L.const_int i32_t 0) main_builder in
+  let (_, _, curr_builder, _, _) = (List.fold_left stmt (curr_symbol_table, function_decls, main_builder, None, main_func) (List.rev stmts)) in
+  let _ = L.build_ret (L.const_int i32_t 0) curr_builder in
   the_module

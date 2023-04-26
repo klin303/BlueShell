@@ -15,7 +15,7 @@ if (not true) {
 
 if (not true) {
   ./<"echo" withargs [true]>;
-} else if (true){
+} else if (true) {
   ./<"echo" withargs [false]>;
   ./<"echo" withargs ["passed"]>;
 }
