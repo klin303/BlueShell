@@ -1,0 +1,6 @@
+// tests that declaring and assigning an executable variable 
+// to an existing one works 
+
+exec e1 = <"echo" withargs ["hello world"]>;
+exec e2 = e1;
+./e2;

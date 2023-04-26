@@ -1,3 +1,5 @@
+// tests the char type by printing it out
+
 void print_char(char s) {
     ./<"echo" withargs [s]>;
     return;
@@ -5,4 +7,5 @@ void print_char(char s) {
 
 print_char('1');
 print_char('\n');
-print_char('k');
+char c = 'k';
+print_char(c);

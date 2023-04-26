@@ -364,7 +364,6 @@ let translate (stmts, functions) =
                         (* allocate and fill a list node *)
 
                         (* allocate and fill a list node *)
-
                         let struct_space = L.build_malloc list_t "list_node" builder in
                         let struct_val_ptr = L.build_struct_gep struct_space 0
                         "struct_val_ptr" builder in
@@ -423,19 +422,25 @@ let translate (stmts, functions) =
       (* | _ -> raise (Failure "Expression not implemented yet") *)
   in
   let curr_symbol_table = { variables = StringMap.empty ; parent = None } in
-  let rec stmt ((curr_symbol_table : symbol_table), (function_decls : (L.llvalue * sfunc_decl) StringMap.t), builder, (fdecl_option: sfunc_decl option)) (statement : sstmt)  = match statement with
-    (* SBlock sl -> List.fold_left stmt (curr_symbol_table, builder) sl *)
-
-    SReturn e -> (match fdecl_option with
+  let rec stmt ((curr_symbol_table : symbol_table), (function_decls : (L.llvalue * sfunc_decl) StringMap.t), builder, (fdecl_option: sfunc_decl option), (func_llvalue : L.llvalue)) (statement : sstmt) = 
+    match statement with
+      SReturn e -> (match fdecl_option with
         Some(fdecl) ->  (match fdecl.styp with
-                      Void -> ((curr_symbol_table, function_decls, builder, fdecl_option), L.build_ret_void builder)
+                      Void -> ((curr_symbol_table, function_decls, builder, fdecl_option, func_llvalue), L.build_ret_void builder)
                       | _ -> let ret_mem = L.build_malloc (ltype_of_typ fdecl.styp) "return malloc" builder in
                               let ret = L.build_load (snd (expr curr_symbol_table function_decls builder e)) "return load" builder in
                               let _ = L.build_store ret ret_mem builder in
-                      ((curr_symbol_table, function_decls, builder, fdecl_option), L.build_ret ret_mem builder))
+                      ((curr_symbol_table, function_decls, builder, fdecl_option, func_llvalue), L.build_ret ret_mem builder))
       | None -> raise (Failure "semant should have caught return outside of a function"))
-
-    | SExpr e -> let (new_symbol_table, expr_val) = expr curr_symbol_table function_decls builder e in ((new_symbol_table, function_decls, builder, fdecl_option), expr_val)
+    | SBlock sl ->
+      let new_symbol_table = { variables = StringMap.empty ; parent = Some curr_symbol_table} in
+      let (_, llvalue_list) = List.fold_left_map stmt (new_symbol_table, function_decls, builder, fdecl_option, func_llvalue) sl
+      in
+      ((curr_symbol_table, function_decls, builder, fdecl_option, func_llvalue), List.hd (List.rev llvalue_list))
+    | SExpr e -> let (new_symbol_table, expr_val) = expr curr_symbol_table function_decls builder e in ((new_symbol_table, function_decls, builder, fdecl_option, func_llvalue), expr_val)
+    (* | SIf (predicate, then_stmt, else_stmt) ->
+      let (curr_symbol_table', bool_val) = expr curr_symbol_table function_decls builder predicate in
+      let merge_bb = L.append_block context "merge" the_function *)
     | _ -> raise (Failure "Statement not implemented yet")
   in
 let function_decls : (L.llvalue * sfunc_decl) StringMap.t =
@@ -467,10 +472,10 @@ let function_decls : (L.llvalue * sfunc_decl) StringMap.t =
     in
     let formals_table = List.fold_left2 add_formal { variables = StringMap.empty ; parent = None } fdecl.sformals
         (Array.to_list (L.params the_function))
-    in let _ = (List.fold_left_map stmt (formals_table, function_decls, func_builder, Some fdecl) (fdecl.sbody))
+    in let _ = (List.fold_left_map stmt (formals_table, function_decls, func_builder, Some fdecl, fst (StringMap.find fdecl.sfname function_decls)) (fdecl.sbody))
     in ()
   in
   let _ = List.iter build_function_body functions in
-  let _ = (List.fold_left_map stmt (curr_symbol_table, function_decls, main_builder, None) (List.rev stmts)) in
+  let _ = (List.fold_left_map stmt (curr_symbol_table, function_decls, main_builder, None, main_func) (List.rev stmts)) in
   let _ = L.build_ret (L.const_int i32_t 0) main_builder in
   the_module

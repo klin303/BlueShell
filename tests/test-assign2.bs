@@ -1,4 +1,6 @@
-// tests assignment of an executable to a variable
+// tests declaration and assignment of a string to a variable in two lines
+string str;
+str = "hello world";
 
-exec e = <"echo" withargs ["hello hello"]>;
+exec e = <"echo" withargs [str]>;
 ./e;

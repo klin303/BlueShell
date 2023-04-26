@@ -1,2 +1,7 @@
+// creates a BS executable whose path contains a shell script 
+// that compiles a .bs file into an executable 
+// executes the created executable, which will run the 
+// programed compiled via shell script. 
+
 ./<"./compile.sh" withargs ["./tests/test-echo.bs"]>;
 ./<"./test-echo.exe">;

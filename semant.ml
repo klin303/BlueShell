@@ -308,10 +308,11 @@ let check (stmts, functions) =
               let checked_sl = (check_stmt_list temp sl)
               in
               SBlock(checked_sl) :: (check_stmt_list curr_symbol_table' ss) (* Flatten blocks *)
-            | s :: ss         -> (snd (check_stmt curr_symbol_table' s)) ::
-            (check_stmt_list curr_symbol_table' ss)
+              | s :: ss         -> 
+                let checked_first = (check_stmt curr_symbol_table' s) in
+                (snd checked_first) :: (check_stmt_list (fst checked_first) ss)
             | []              -> [])
-          in (curr_symbol_table, SBlock(check_stmt_list curr_symbol_table stmts))
+          in (curr_symbol_table, SBlock(check_stmt_list { variables = StringMap.empty ; parent = Some curr_symbol_table} stmts))
   | Expr e ->
     let (new_symbol_table, e') = expr curr_symbol_table e in
     (new_symbol_table, SExpr e')
@@ -365,10 +366,11 @@ let check (stmts, functions) =
                 let checked_sl = (check_stmt_list temp sl)
                 in
                 SBlock(checked_sl) :: (check_stmt_list curr_symbol_table' ss) (* Flatten blocks *)
-              | s :: ss         -> (snd (check_stmt_wrap curr_symbol_table' s)) ::
-              (check_stmt_list curr_symbol_table' ss)
+              | s :: ss         -> 
+                let checked_first = (check_stmt_wrap curr_symbol_table' s) in
+                (snd checked_first) :: (check_stmt_list (fst checked_first) ss)
               | []              -> [])
-            in (curr_symbol_table, SBlock(check_stmt_list curr_symbol_table stmts))
+            in (curr_symbol_table, SBlock(check_stmt_list { variables = StringMap.empty ; parent = Some curr_symbol_table} stmts))
     | Expr e ->
       let (new_symbol_table, e') = expr curr_symbol_table e in
       (new_symbol_table, SExpr e')

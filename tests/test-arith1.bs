@@ -1,0 +1,6 @@
+// tests integer arithmetic with int variables 
+
+int x = 4;
+int y = x;
+x = x + 1;
+./<"echo" withargs [y]>;

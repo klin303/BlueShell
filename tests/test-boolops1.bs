@@ -1,3 +1,5 @@
+// tests boolean operations (both ways to write) and prints and the result
+
 void print_bool(bool b) {
     ./<"echo" withargs [b]>;
     return;

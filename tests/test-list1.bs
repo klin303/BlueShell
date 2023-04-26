@@ -1,0 +1,8 @@
+// tests assignment of list to a variable with multiple list elements
+
+string arg1 = "README";
+string arg2 = "README";
+list of string arr = [arg1, arg2];
+
+exec e = <"cat" withargs arr>;
+./e;

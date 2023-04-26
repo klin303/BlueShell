@@ -1,0 +1,8 @@
+// tests that declaring and assigning an executable variable 
+// to an existing one that takes in a variable as an argument works 
+
+string s = "this string is stored in a variable";
+exec e1 = <"echo" withargs [s]>;
+exec e2 = e1;
+./e2;
+

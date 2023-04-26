@@ -1,3 +1,5 @@
+// test integer comparative operators 
+
 void print_bool(bool b) {
     ./<"echo" withargs [b]>;
     return;

@@ -1,3 +1,10 @@
+/*
+ * test-stringfunc1 tests:
+ *      - Creating a function of type string -> void that calls prints 
+ *      the parameter string out to stdout 
+ *      - Calls the function on three different strings
+*/
+
 void print_string(string s) {
     ./<"echo" withargs [s]>;
     return;

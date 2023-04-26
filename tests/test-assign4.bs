@@ -1,6 +1,0 @@
-// tests assignment and declaration of a string to a variable in a single line
-
-string str = "hello world";
-
-exec e = <"echo" withargs [str]>;
-./e;

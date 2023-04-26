@@ -1,0 +1,21 @@
+// test simple if and else if statement 
+if (true) {
+  ./<"echo" withargs [true]>;
+  ./<"echo" withargs ["passed"]>;
+} else {
+  ./<"echo" withargs [false]>;
+}
+
+if (not true) {
+  ./<"echo" withargs [true]>;
+} else {
+  ./<"echo" withargs [false]>;
+  ./<"echo" withargs ["passed"]>;
+}
+
+if (not true) {
+  ./<"echo" withargs [true]>;
+} else if (true){
+  ./<"echo" withargs [false]>;
+  ./<"echo" withargs ["passed"]>;
+}

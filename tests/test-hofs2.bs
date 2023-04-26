@@ -4,8 +4,9 @@ float addf(float a, float b)  {
 }
 
 void fake_hof(function (float -> float -> float) funk) {
-    funk(1.2, 3.4);
+    addf(1.2, 3.4);
     return;
 }
 
-fake_hof(addf);
+//function (float -> float -> float) localfunk = addf;
+//fake_hof(localfunk);
