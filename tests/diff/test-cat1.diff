@@ -1,0 +1,214 @@
+11,12c11,17
+< test-arith1.bs
+<     Creates two integer variables, does addition on them, and creates an executable with path "echo" and one integer argument 
+---
+> test-ls.bs:
+>     Creates and runs an executable with path 'ls' and no arguments
+> 
+> test-compile.bs:
+>     Creates and runs a BlueShell executable which compiles a BlueShell program.
+>     It then creates and runs a BlueShell executable which runs the compiled
+>     program.
+14c19,23
+< test-assign1.bs
+---
+> test-echo.bs
+>     Creates an executable with a single string argument and executes it without
+>     storing the executable in a variable.
+> 
+> test-assign2.bs
+18,19c27,28
+< test-assign2.bs
+<     Declares a string variable, then assigns a string value to
+---
+> test-assign3.bs
+>     Declares a string variable then in another line assigns a string value to
+23c32
+< test-assign3.bs
+---
+> test-assign4.bs
+27,50c36
+< test-boolops1.bs 
+<     Tests the boolean operations &&, ||, and, or, and prints out the results of each. 
+< 
+< test-cat1.bs
+<     Creates an executable with two string arguments. Executes it to demonstrate
+<     that multiple arguments work.
+< 
+< test-charfunc1.bs
+<     Tests the char type by printing out chars and 
+<     also printing out variable of type char
+< 
+< test-compile.bs:
+<     Creates and runs a BlueShell executable which compiles a BlueShell program.
+<     It then creates and runs a BlueShell executable which runs the compiled
+<     program.
+< 
+< test-compop1.bs 
+<     Tests integer comparison operators (<, >, <=, >=, ==, and !=) and prints out the resulting boolean 
+< 
+< test-echo1.bs
+<     Creates an executable with a single string argument and executes it without
+<     storing the executable in a variable.
+< 
+< test-echo2.bs
+---
+> test-echo3.bs
+54,61c40,42
+< test-execcopy1.bs
+<     Declares an executable with one argument and assigns it to a variable. Creates a new executable variable by assigning it to the initial executable made. Executes the second executable. 
+< 
+< test-execcopy2 
+<     Declares a string variable. Declares an executable variable of one argument of the string variable. Creates a new executable variable by assigning it to the initial executable made. Executes the second executable. 
+< 
+< test-floatarith1 
+<     Tests our code can handle floats and all four arithmetic operations on floats to ensure they work and print out the result of each operation. 
+---
+> test-cat2.bs
+>     Creates an executable with two string arguments. Executes it to demonstrate
+>     that multiple arguments work.
+67,79d47
+< test-hofs1.bs 
+<     Tests higher order functions by assigning a variable to an existing function and calling that function through the variable.  
+< 
+< 
+< test-hofs2.bs 
+<     Tests higher order functions by passing defining a function that takes in another function as a parameter and calls the parameter function. 
+< 
+< test-hof3.bs 
+<     Tests higher order functions by by declaring two function variables of the same type, assigning one two a function, assigning the second to the first function variable, then calling the second. 
+< 
+< test-if1.bs
+<     Tests if statements by 
+< 
+84,106d51
+< test-ls.bs:
+<     Creates and runs an executable with path 'ls' and no arguments
+< 
+< tests-neg1.bs 
+< 
+< tests-not1.bs 
+< 
+< test-printbools1.bs 
+< 
+< test-printfloat1.bs 
+< 
+< tests-printints.bs 
+< 
+< tests-returnfunc1.bs 
+< 
+< tests-string1.bs 
+< 
+< test-stringfunc1.bs 
+< 
+< 
+< 
+< FAILS 
+< 
+166,167c111,117
+< test-arith1.bs
+<     Creates two integer variables, does addition on them, and creates an executable with path "echo" and one integer argument 
+---
+> test-ls.bs:
+>     Creates and runs an executable with path 'ls' and no arguments
+> 
+> test-compile.bs:
+>     Creates and runs a BlueShell executable which compiles a BlueShell program.
+>     It then creates and runs a BlueShell executable which runs the compiled
+>     program.
+169c119,123
+< test-assign1.bs
+---
+> test-echo.bs
+>     Creates an executable with a single string argument and executes it without
+>     storing the executable in a variable.
+> 
+> test-assign2.bs
+173,174c127,128
+< test-assign2.bs
+<     Declares a string variable, then assigns a string value to
+---
+> test-assign3.bs
+>     Declares a string variable then in another line assigns a string value to
+178c132
+< test-assign3.bs
+---
+> test-assign4.bs
+182,205c136
+< test-boolops1.bs 
+<     Tests the boolean operations &&, ||, and, or, and prints out the results of each. 
+< 
+< test-cat1.bs
+<     Creates an executable with two string arguments. Executes it to demonstrate
+<     that multiple arguments work.
+< 
+< test-charfunc1.bs
+<     Tests the char type by printing out chars and 
+<     also printing out variable of type char
+< 
+< test-compile.bs:
+<     Creates and runs a BlueShell executable which compiles a BlueShell program.
+<     It then creates and runs a BlueShell executable which runs the compiled
+<     program.
+< 
+< test-compop1.bs 
+<     Tests integer comparison operators (<, >, <=, >=, ==, and !=) and prints out the resulting boolean 
+< 
+< test-echo1.bs
+<     Creates an executable with a single string argument and executes it without
+<     storing the executable in a variable.
+< 
+< test-echo2.bs
+---
+> test-echo3.bs
+209,216c140,142
+< test-execcopy1.bs
+<     Declares an executable with one argument and assigns it to a variable. Creates a new executable variable by assigning it to the initial executable made. Executes the second executable. 
+< 
+< test-execcopy2 
+<     Declares a string variable. Declares an executable variable of one argument of the string variable. Creates a new executable variable by assigning it to the initial executable made. Executes the second executable. 
+< 
+< test-floatarith1 
+<     Tests our code can handle floats and all four arithmetic operations on floats to ensure they work and print out the result of each operation. 
+---
+> test-cat2.bs
+>     Creates an executable with two string arguments. Executes it to demonstrate
+>     that multiple arguments work.
+222,234d147
+< test-hofs1.bs 
+<     Tests higher order functions by assigning a variable to an existing function and calling that function through the variable.  
+< 
+< 
+< test-hofs2.bs 
+<     Tests higher order functions by passing defining a function that takes in another function as a parameter and calls the parameter function. 
+< 
+< test-hof3.bs 
+<     Tests higher order functions by by declaring two function variables of the same type, assigning one two a function, assigning the second to the first function variable, then calling the second. 
+< 
+< test-if1.bs
+<     Tests if statements by 
+< 
+239,261d151
+< test-ls.bs:
+<     Creates and runs an executable with path 'ls' and no arguments
+< 
+< tests-neg1.bs 
+< 
+< tests-not1.bs 
+< 
+< test-printbools1.bs 
+< 
+< test-printfloat1.bs 
+< 
+< tests-printints.bs 
+< 
+< tests-returnfunc1.bs 
+< 
+< tests-string1.bs 
+< 
+< test-stringfunc1.bs 
+< 
+< 
+< 
+< FAILS 
+< 

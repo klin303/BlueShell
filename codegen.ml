@@ -520,19 +520,19 @@ let function_decls : (L.llvalue * sfunc_decl) StringMap.t =
     let func_builder = L.builder_at_end context (L.entry_block the_function) in
 
     let add_formal ((curr_symbol_table : symbol_table), function_decls) ((t : A.typ), n) p =
-    let new_map =
-        let old_map = curr_symbol_table.variables in
-        let variable = L.build_alloca (L.pointer_type (ltype_of_typ t)) n func_builder in
-        let _ = L.build_store p variable func_builder in
-        StringMap.add n variable old_map in
-    let new_function_decls  =
+      let new_map =
+          let old_map = curr_symbol_table.variables in
+          let variable = L.build_alloca (L.pointer_type (ltype_of_typ t)) n func_builder in
+          let _ = L.build_store p variable func_builder in
+          StringMap.add n variable old_map
+    in
+    let new_function_decls =
         let function_decl m (t , name) =
           (match t with
-            A.Function ( _, ty_ret) -> StringMap.add name (L.const_int i32_t 32, { styp = ty_ret;  sbody = []; sformals = []; sfname = name }) m
+            A.Function ( _, ty_ret) -> StringMap.add name (L.const_int i32_t 32, { styp = ty_ret; sbody = []; sformals = []; sfname = name }) m
             | _ -> m)
-        in
-        List.fold_left function_decl function_decls fdecl.sformals
-    in ( {variables = new_map; parent = None}, new_function_decls )
+        in List.fold_left function_decl function_decls fdecl.sformals
+    in ( { variables = new_map; parent = None }, new_function_decls )
     in
     let (formals_table, new_function_decls ) = List.fold_left2 add_formal (curr_symbol_table, function_decls) fdecl.sformals
         (Array.to_list (L.params the_function))

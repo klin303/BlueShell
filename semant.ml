@@ -344,7 +344,7 @@ let check (stmts, functions) =
     let add_formals formal_map name typ =
       StringMap.add name typ formal_map
     in
-    let formals_map = List.fold_left2 add_formals StringMap.empty (List.map snd func.formals) (List.map
+    let formals_map = List.fold_left2 add_formals symbol_table.variables (List.map snd func.formals) (List.map
     fst func.formals) in
     let formals_env = { variables = formals_map ; parent = None } in
     let rec check_stmt_wrap (curr_symbol_table : symbol_table) statement =
