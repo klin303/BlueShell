@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include "string.h"
+#include "assert.h"
 
 /* execvp_helper
 Purpose: Forks and calls execvp on the path and arguments, interfacing with the Blue Shell codegen.
@@ -29,9 +30,9 @@ int execvp_helper(char *path, struct exec *orig_args) {
         while (args_copy != NULL) {
             i += 1;
             args_copy = args_copy->next;
-            // fprintf(stderr, "%s", *(char **)(orig_args->val));
+            // fprintf(stderr, "%s", *(char **)(args_copy));
         }
-        char **args = malloc(sizeof(char*) + (i + 1));
+        char **args = malloc(sizeof(char*) + (i + 2));
         args_copy = orig_args;
         args[0] = path;
         for (int j = 0; j < i; j++) {
@@ -64,16 +65,18 @@ int execvp_helper(char *path, struct exec *orig_args) {
                 exit(1);
 
             }
-              // str = sprintf(stf, "%f", **(float **)(args_copy->val));
-          // char** temp = *(char ***)(args_copy->val);
+
           args[j + 1] = str;
           args_copy = args_copy->next;
         }
 
+        args[i + 1] = NULL;
+
+
+
         int rc = fork();
         int status = 0;
 
-        // in child process
         if (rc == 0) {
             int err = execvp(path, args);
             printf("%d", err);

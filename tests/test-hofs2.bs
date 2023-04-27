@@ -1,13 +1,14 @@
-/*float addf(float a, float b)  {
+
+float addf(float a, float b)  {
     ./<"echo" withargs [a + b]>;
     return a + b;
 }
 
 void fake_hof(function (float -> float -> float) funk) {
-    addf(1.2, 3.4);
+    funk(1.2, 3.2);
     return;
 }
 
-//function (float -> float -> float) localfunk = addf;
-//fake_hof(localfunk);
-*/
+fake_hof(addf);
+function (float -> float -> float) localfunk = addf;
+fake_hof(localfunk);
