@@ -1,0 +1,3 @@
+string s = "";
+s = ./<"echo" withargs ["hello world"]>;
+./<"echo" withargs [s, " success!"]>;

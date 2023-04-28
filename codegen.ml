@@ -59,7 +59,7 @@ let translate (stmts, functions) =
     | _ -> raise (Failure "ltype_of_typ fail")
   in
   let execvp_t : L.lltype =
-      L.var_arg_function_type i32_t [| L.pointer_type i8_t;  L.pointer_type list_t |] in
+      L.var_arg_function_type (L.pointer_type i8_t) [| L.pointer_type i8_t;  L.pointer_type list_t |] in
   let execvp_func : L.llvalue =
      L.declare_function "execvp_helper" execvp_t the_module in
   let third x =
@@ -381,7 +381,10 @@ let translate (stmts, functions) =
               let path = L.build_load path_ptr "path" builder in
               let args_ptr = L.build_struct_gep exec 1 "args_ptr" builder in
               let args = L.build_load args_ptr "args" builder in
-              (curr_symbol_table, function_decls, L.build_call execvp_func [| path ; args |] "execvp" builder)
+              let return_str = L.build_call execvp_func [| path ; args |] "execvp" builder in
+              let return_str_ptr = L.build_alloca (L.pointer_type i8_t) "return_str_ptr" builder in
+              let return_str_store = L.build_store return_str return_str_ptr builder in
+              (curr_symbol_table, function_decls, return_str_store)
       | Neg ->
           let (curr_symbol_table'', function_decls', e') = expr curr_symbol_table function_decls builder e in
           let (t,_) = e in

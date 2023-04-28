@@ -20,13 +20,14 @@ enum Type { INT = 0, FLOAT = 1, BOOL = 2, CHAR = 3, STRING = 4, OTHER = 5};
 
 
 
-int execvp_helper(char *path, struct exec *orig_args) {
+char* execvp_helper(char *path, struct exec *orig_args) {
         int i = 0;
         struct exec *args_copy = orig_args;
 
         char* str;
         char** temp;
 
+        // count the number of args
         while (args_copy != NULL) {
             char **temp1 = *(char***)(args_copy->val);
             // fprintf(stderr, "ARGSCOPY %d: %s\n", i, *temp1);
@@ -35,6 +36,8 @@ int execvp_helper(char *path, struct exec *orig_args) {
             // fprintf(stderr, "%s", *(char **)(args_copy));
         }
         // fprintf(stderr, "i is: %d\n", i);
+
+        // move args from linked list into array for execvp to use
         char **args = malloc(sizeof(char*) * (i + 2));
         args_copy = orig_args;
         args[0] = path;
@@ -71,21 +74,37 @@ int execvp_helper(char *path, struct exec *orig_args) {
           args[j + 1] = str;
           args_copy = args_copy->next;
         }
-
         args[i + 1] = NULL;
 
-        int rc = fork();
-        int status = 0;
+        // fork and run the executable
+        
         // for (int x = 0; x < i + 2; x++) {
         //   fprintf(stderr, "ARGS %d: %s\n", x, args[x]);
         // }
+        int fds[2];
+        pipe(fds);
 
+        int rc = fork();
+        int status = 0;
         if (rc == 0) {
+            // close(1);
+            close(fds[0]);
+            dup2(fds[1], 1);
+            close(fds[1]);
             int err = execvp(path, args);
-            printf("%d", err);
+            exit(1);
+            // printf("%d", err);
         }
         int wpid = wait(&status);
         // printf("exit code: %d\n", WEXITSTATUS(status));
 
-    return status;
+        // close(fds[1]);
+        // off_t size = lseek(fds[0], 0, SEEK_END);
+        // fprintf(stderr, "file size: %lld\n", size);
+        char *buf = malloc(1024);
+        read(fds[0], buf, 1024);
+
+        fprintf(stdout, "%s", buf);
+
+        return buf;
 }
