@@ -144,6 +144,24 @@ let translate (stmts, functions) =
                         let (_, _, new_value') = (expr curr_symbol_table function_decls builder e2) in
                         let _ = L.build_store new_value' casted_args_ptr builder in
                         (curr_symbol_table, function_decls, struct_space)
+    (* | SIndex (e1, e2) -> 
+      let (curr_symbol_table', new_function_decls, e1') = expr curr_symbol_table function_decls builder e1 in
+      let (curr_symbol_table'', new_function_decls', e2') = expr curr_symbol_table' new_function_decls builder e2 in
+      let index_val = L.build_load e2' "index_val" builder in
+      let pred_bb = L.append_block context "index" builder *)
+
+      (* let pred_bb = L.append_block context "while" func_llvalue in
+      let _ = L.build_br pred_bb builder in
+      let body_bb = L.append_block context "while_body" func_llvalue in
+      let (_, _, while_builder, _, _) = stmt (curr_symbol_table, function_decls, (L.builder_at_end context body_bb), fdecl_option, func_llvalue) body in
+      let _ = L.build_br pred_bb while_builder in
+      let pred_builder = L.builder_at_end context pred_bb in
+      let (curr_symbol_table', new_function_decls, bool_val) = expr curr_symbol_table function_decls pred_builder predicate in
+      let dereferenced_bool = L.build_load bool_val "bool" pred_builder in
+      let merge_bb = L.append_block context "merge" func_llvalue in
+      let _ = L.build_cond_br dereferenced_bool body_bb merge_bb pred_builder in
+      (curr_symbol_table, new_function_decls, (L.builder_at_end context merge_bb), fdecl_option, func_llvalue) *)
+
     | SBinop (e1, op, e2) ->
       let (t, _) = e1
       in let (curr_symbol_table', new_function_decls, e1') = expr curr_symbol_table function_decls builder e1
@@ -167,12 +185,12 @@ let translate (stmts, functions) =
         | Add -> (match t with
           Float ->
             let float_mem = L.build_alloca float_t "int_mem" builder in
-            let new_float =  L.build_fadd (L.build_load e1' "left side of fadd" builder ) (L.build_load e2' "right side of fadd" builder) "tmp" builder in
+            let new_float = L.build_fadd (L.build_load e1' "left side of fadd" builder ) (L.build_load e2' "right side of fadd" builder) "tmp" builder in
             let _ = L.build_store new_float float_mem builder in
             (curr_symbol_table'', function_decls, float_mem)
           | Int ->
             let int_mem = L.build_alloca i32_t "int_mem" builder in
-            let new_int =L.build_add (L.build_load e1' "left side of add" builder) (L.build_load e2' "right side of add" builder) "tmp" builder in
+            let new_int = L.build_add (L.build_load e1' "left side of add" builder) (L.build_load e2' "right side of add" builder) "tmp" builder in
             let _ = L.build_store new_int int_mem builder in
             (curr_symbol_table'', function_decls, int_mem)
           | Exec -> raise (Failure "exec add not implemented yet")
@@ -181,12 +199,12 @@ let translate (stmts, functions) =
         | Sub -> (match t with
           Float ->
             let float_mem = L.build_alloca float_t "int_mem" builder in
-            let new_float =  L.build_fsub (L.build_load e1' "left side of fsub" builder ) (L.build_load e2' "right side of fsub" builder) "tmp" builder in
+            let new_float = L.build_fsub (L.build_load e1' "left side of fsub" builder ) (L.build_load e2' "right side of fsub" builder) "tmp" builder in
             let _ = L.build_store new_float float_mem builder in
             (curr_symbol_table'', function_decls, float_mem)
           | Int ->
             let int_mem = L.build_alloca i32_t "int_mem" builder in
-            let new_int =L.build_sub (L.build_load e1' "left side of sub" builder) (L.build_load e2' "right side of sub" builder) "tmp" builder in
+            let new_int = L.build_sub (L.build_load e1' "left side of sub" builder) (L.build_load e2' "right side of sub" builder) "tmp" builder in
             let _ = L.build_store new_int int_mem builder in
             (curr_symbol_table'', function_decls, int_mem)
           | _ -> raise (Failure "semant should have caught sub with invalid types")
@@ -194,12 +212,12 @@ let translate (stmts, functions) =
         | Mult -> (match t with
           Float ->
             let float_mem = L.build_alloca float_t "int_mem" builder in
-            let new_float =  L.build_fmul (L.build_load e1' "left side of fmult" builder ) (L.build_load e2' "right side of fmult" builder) "tmp" builder in
+            let new_float = L.build_fmul (L.build_load e1' "left side of fmult" builder ) (L.build_load e2' "right side of fmult" builder) "tmp" builder in
             let _ = L.build_store new_float float_mem builder in
             (curr_symbol_table'', function_decls, float_mem)
           | Int ->
             let int_mem = L.build_alloca i32_t "int_mem" builder in
-            let new_int =L.build_mul (L.build_load e1' "left side of mult" builder) (L.build_load e2' "right side of mult" builder) "tmp" builder in
+            let new_int = L.build_mul (L.build_load e1' "left side of mult" builder) (L.build_load e2' "right side of mult" builder) "tmp" builder in
             let _ = L.build_store new_int int_mem builder in
             (curr_symbol_table'', function_decls, int_mem)
           | Exec -> raise (Failure "exec mul not implemented yet")
@@ -208,12 +226,12 @@ let translate (stmts, functions) =
         | Div -> (match t with
           Float ->
             let float_mem = L.build_alloca float_t "int_mem" builder in
-            let new_float =  L.build_fdiv (L.build_load e1' "left side of fdiv" builder ) (L.build_load e2' "right side of fdiv" builder) "tmp" builder in
+            let new_float = L.build_fdiv (L.build_load e1' "left side of fdiv" builder ) (L.build_load e2' "right side of fdiv" builder) "tmp" builder in
             let _ = L.build_store new_float float_mem builder in
             (curr_symbol_table'', function_decls, float_mem)
           | Int ->
             let int_mem = L.build_alloca i32_t "int_mem" builder in
-            let new_int =L.build_sdiv (L.build_load e1' "left side of div" builder) (L.build_load e2' "right side of div" builder) "tmp" builder in
+            let new_int = L.build_sdiv (L.build_load e1' "left side of div" builder) (L.build_load e2' "right side of div" builder) "tmp" builder in
             let _ = L.build_store new_int int_mem builder in
             (curr_symbol_table'', function_decls, int_mem)
           | _ -> raise (Failure "semant should have caught div with invalid types")
@@ -356,7 +374,7 @@ let translate (stmts, functions) =
     )
     | SPreUnop(op, e) -> (match op with
         Run ->
-              let (_, _,exec) = expr curr_symbol_table function_decls builder e in
+              let (_, _, exec) = expr curr_symbol_table function_decls builder e in
 
               let dbl_path_ptr = L.build_struct_gep exec 0 "dbl_path_ptr" builder in
               let path_ptr = L.build_load dbl_path_ptr "path_ptr" builder in

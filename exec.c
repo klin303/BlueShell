@@ -28,11 +28,14 @@ int execvp_helper(char *path, struct exec *orig_args) {
         char** temp;
 
         while (args_copy != NULL) {
+            char **temp1 = *(char***)(args_copy->val);
+            // fprintf(stderr, "ARGSCOPY %d: %s\n", i, *temp1);
             i += 1;
             args_copy = args_copy->next;
             // fprintf(stderr, "%s", *(char **)(args_copy));
         }
-        char **args = malloc(sizeof(char*) + (i + 2));
+        // fprintf(stderr, "i is: %d\n", i);
+        char **args = malloc(sizeof(char*) * (i + 2));
         args_copy = orig_args;
         args[0] = path;
         for (int j = 0; j < i; j++) {
@@ -63,7 +66,6 @@ int execvp_helper(char *path, struct exec *orig_args) {
             case OTHER:
                 fprintf(stderr, "Can only have lists of ints, bools, floats, chars, or string in executable");
                 exit(1);
-
             }
 
           args[j + 1] = str;
@@ -72,10 +74,11 @@ int execvp_helper(char *path, struct exec *orig_args) {
 
         args[i + 1] = NULL;
 
-
-
         int rc = fork();
         int status = 0;
+        // for (int x = 0; x < i + 2; x++) {
+        //   fprintf(stderr, "ARGS %d: %s\n", x, args[x]);
+        // }
 
         if (rc == 0) {
             int err = execvp(path, args);
