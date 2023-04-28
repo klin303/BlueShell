@@ -312,6 +312,46 @@ let translate (stmts, functions) =
             (curr_symbol_table'', function_decls, bool_mem)
           | _ -> raise (Failure "semant should have caught neq with invalid types")
         )
+        | Cons -> let (t2, _) = e2 in
+        (match t2 with
+            EmptyList -> expr curr_symbol_table function_decls builder (List_type t, (SList [e1]))
+            | List_type _ -> 
+              let value = e1' in
+              let enum_type = match (fst e1) with
+                        Int -> L.const_int i32_t 0
+                        | Float -> L.const_int i32_t 1
+                        | Bool -> L.const_int i32_t 2
+                        | Char -> L.const_int i32_t 3
+                        | String -> L.const_int i32_t 4
+                        | _  -> L.const_int i32_t 5
+                        in
+              (* allocate space for the element and store *)
+              let value_ptr = L.build_malloc (L.pointer_type (ltype_of_typ (fst
+              e1))) "value_ptr" builder in
+              let _ = L.build_store value value_ptr builder in
+              (* allocate and fill a list node *)
+
+              (* allocate and fill a list node *)
+              let struct_space = L.build_malloc list_t "list_node" builder in
+              let struct_val_ptr = L.build_struct_gep struct_space 0
+              "struct_val_ptr" builder in
+              let struct_ptr_ptr = L.build_struct_gep struct_space 1
+              "struct_ptr_ptr" builder in
+              let struct_ty_ptr = L.build_struct_gep struct_space 2
+              "struct_ty_ptr" builder in
+              let list_ptr = e2' in
+
+              let casted_ptr_ptr = L.build_pointercast struct_ptr_ptr (L.pointer_type (L.pointer_type list_t)) "casted_ptr_ptr" builder in
+              let _ = L.build_store list_ptr casted_ptr_ptr builder in
+              let casted_val_ptr = L.build_pointercast struct_val_ptr (L.pointer_type (L.pointer_type i8_t)) "casted_val_ptr" builder in
+              let casted_val = L.build_pointercast value_ptr (L.pointer_type i8_t) "casted_val" builder in
+              let casted_ty_ptr = L.build_pointercast struct_ty_ptr (L.pointer_type i32_t) "casted_ty_ptr" builder in
+              let casted_ty = L.build_pointercast enum_type i32_t "casted_ty" builder in
+              let _ = L.build_store casted_val casted_val_ptr builder in
+              let _ = L.build_store casted_ty casted_ty_ptr builder in
+              (* put value of element into the allocated space *)
+              (curr_symbol_table, function_decls, struct_space )
+        )
         | _ -> raise (Failure "not yet implemented other binops")
     )
     | SPreUnop(op, e) -> (match op with
@@ -525,18 +565,18 @@ let function_decls : (L.llvalue * sfunc_decl) StringMap.t =
           let variable = L.build_alloca (L.pointer_type (ltype_of_typ t)) n func_builder in
           let _ = L.build_store p variable func_builder in
           StringMap.add n variable old_map
+      in
+      let new_function_decls =
+          let function_decl m (t , name) =
+            (match t with
+              A.Function ( _, ty_ret) -> StringMap.add name (L.const_int i32_t 32, { styp = ty_ret; sbody = []; sformals = []; sfname = name }) m
+              | _ -> m)
+          in List.fold_left function_decl function_decls fdecl.sformals
+      in ( { variables = new_map; parent = None }, new_function_decls )
     in
-    let new_function_decls =
-        let function_decl m (t , name) =
-          (match t with
-            A.Function ( _, ty_ret) -> StringMap.add name (L.const_int i32_t 32, { styp = ty_ret; sbody = []; sformals = []; sfname = name }) m
-            | _ -> m)
-        in List.fold_left function_decl function_decls fdecl.sformals
-    in ( { variables = new_map; parent = None }, new_function_decls )
-    in
-    let (formals_table, new_function_decls ) = List.fold_left2 add_formal (curr_symbol_table, function_decls) fdecl.sformals
+    let ( formals_table, new_function_decls ) = List.fold_left2 add_formal (curr_symbol_table, function_decls) fdecl.sformals
         (Array.to_list (L.params the_function))
-    in let _ = (List.fold_left stmt (formals_table, new_function_decls, func_builder, Some fdecl, fst (StringMap.find fdecl.sfname function_decls)) (fdecl.sbody))
+    in let _ = (List.fold_left stmt (formals_table, new_function_decls, func_builder, Some fdecl, fst (StringMap.find fdecl.sfname new_function_decls)) (fdecl.sbody))
     in ()
   in
   let _ = List.iter build_function_body functions in

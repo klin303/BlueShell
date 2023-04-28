@@ -1,0 +1,15 @@
+int add(int a, int b) {
+  ./<"echo" withargs [a + b]>;
+  return a + b;
+}
+
+void map(function (int -> int -> int) foo) {
+  int i = 0;
+  int j = 7;
+  for (i; i < 10; i = i + 1) {
+    foo(i, j);
+  }
+  return;
+}
+
+map(add);

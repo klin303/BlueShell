@@ -141,10 +141,13 @@ let check (stmts, functions) =
     (match (e1, op) with
       (Bind b, ExprAssign) ->
                     let same = ty2 = ty1 in
-                    let ty = match e1' with
-                      SBind b when same ->  fst b
-                      (* | SId var when same -> type_of_identifier symbol_table'' var *)
-                      | _ -> raise (Failure ("invalid assignment"))
+                    let ty = (match e1' with
+                      SBind b when same -> fst b
+                      | _ -> (match ty1 with
+                        List_type _ -> (match ty2 with
+                          EmptyList -> ty1
+                          | _ -> raise (Failure ("invalid assignment")))
+                        | _ -> raise (Failure ("invalid assignment"))))
                     in (symbol_table'', (ty, SBinop((ty1, e1'), op, (ty2,
                     e2'))))
       | (Index _, ExprAssign) ->

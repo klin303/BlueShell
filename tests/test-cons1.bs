@@ -1,0 +1,4 @@
+list of string l = [];
+l = "str" :: l;
+
+./<"echo" withargs l>;
