@@ -1,0 +1,7 @@
+list of int l = [1, 2, 3];
+int x = l[0];
+int y = l[1];
+int z = l[2];
+l[0] = 3;
+list of int l2 = [l[0], l[1], l[2]];
+./<"echo" withargs l2>;

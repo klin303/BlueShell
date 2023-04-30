@@ -104,7 +104,7 @@ char* execvp_helper(char *path, struct exec *orig_args) {
         char *buf = malloc(1024);
         read(fds[0], buf, 1024);
 
-        fprintf(stdout, "%s", buf);
+        fprintf(stdout, "%s", buf); // DON'T REMOVE THIS, IT'S NOT A DEBUG STATEMENT
 
         return buf;
 }
