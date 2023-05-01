@@ -169,7 +169,6 @@ let translate (stmts, functions) =
       let temp' = L.build_pointercast temp ((L.pointer_type list_t)) "temp'" index_body_builder in
       let _ = L.build_store temp' e1_pointer index_body_builder in
       let casted_ptr_ptr = L.build_pointercast temp (L.pointer_type list_t) "casted_ptr_ptr" index_body_builder in
-      (* let _ = L.build_store temp e1' builder in *)
 
       let _ = L.build_store casted_ptr_ptr e1_pointer index_body_builder in
       let _ = L.build_br pred_bb index_body_builder in
@@ -179,7 +178,11 @@ let translate (stmts, functions) =
       let _ = L.build_cond_br bool_val index_body_bb merge_bb pred_builder in
       let merge_body_builder = L.builder_at_end context merge_bb in
       let elem_ptr_ptr = L.build_struct_gep (L.build_load e1_pointer "get struct" merge_body_builder) 0 "elem_ptr_ptr" merge_body_builder in
-      let casted_ptr = L.build_pointercast elem_ptr_ptr  (L.pointer_type (L.pointer_type (L.pointer_type i32_t) )) "casted" merge_body_builder in
+      let ty = (match (fst e1) with
+              List_type typ  -> typ
+              | _ -> raise (Failure "should have been caught in semant"))
+      in
+      let casted_ptr = L.build_pointercast elem_ptr_ptr  (L.pointer_type (L.pointer_type (L.pointer_type (ltype_of_typ ty)) )) "casted" merge_body_builder in
       let loaded_temp = L.build_load casted_ptr "elem_to_return" merge_body_builder in
       let elem_to_return = L.build_load loaded_temp "elem_to_return" merge_body_builder in
       (curr_symbol_table'', new_function_decls', merge_body_builder, elem_to_return)

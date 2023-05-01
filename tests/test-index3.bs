@@ -1,0 +1,29 @@
+list of int intl = [0, 1];
+intl[0] = 3;
+./<"echo" withargs intl>;
+
+
+list of char charl = ['h', 'i'];
+charl[0] = 'p';
+./<"echo" withargs charl>;
+
+
+list of string strl = ["hello", "world"];
+strl[1] = "kenny";
+./<"echo" withargs strl>;
+
+
+list of float floatl = [0.1, 1.1, 2.1];
+floatl[2] = 3.1;
+./<"echo" withargs floatl>;
+
+
+list of bool bb = [true, false, true];
+./<"echo" withargs bb>;
+
+
+list of exec exec_list = [<"echo" withargs ["hello world"]>, <"echo" withargs ["hello world2"]>];
+./exec_list[0];
+./exec_list[1];
+exec_list[1] = <"echo" withargs ["hello world3"]>;
+./exec_list[1];

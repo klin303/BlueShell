@@ -1,0 +1,2 @@
+string path1 = "echo";
+./<path1 withargs ["hello world"]>;
