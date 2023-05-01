@@ -11,11 +11,6 @@ type symbol_table = {
   parent : symbol_table option;
 }
 
-(* building a string with const_stringz gets u the array type
-   u can then build_malloc the type u get back *)
-
-(* build_gep = build get element pointer *)
-
 let translate (stmts, functions) =
   let context = L.global_context () in
   (* Add types to the context so we can use them in our LLVM code *)
@@ -50,21 +45,25 @@ let translate (stmts, functions) =
     L.function_type ret_type args_type
     | _ -> raise (Failure "ltype_of_typ fail")
   in
+
+  (* Define and link execvp helper *)
   let execvp_t : L.lltype =
       L.var_arg_function_type (L.pointer_type i8_t) [| L.pointer_type i8_t;  L.pointer_type list_t |] in
   let execvp_func : L.llvalue =
      L.declare_function "execvp_helper" execvp_t the_module in
+
+  (* Helper function, since the llvalue being returned from expr is the 4th elem of a tuple *)
   let fourth x =
     (match x with
     (_, _, _, y) -> y
     | _ -> raise (Failure "not three!"))
   in
-  (* the first blocks that appear in the program are the function declarations.
-  What should we make the first block in our program for now  *)
-  let main_func = L.define_function "main" (L.function_type i32_t [||]) the_module in
 
+  (* Make a fake "main" that contains our toplevel statements *)
+  let main_func = L.define_function "main" (L.function_type i32_t [||]) the_module in
   let main_builder = L.builder_at_end context (L.entry_block main_func) in
 
+  (* Helper function to find a name in a symbol table *)
   let rec lookup (curr_symbol_table : symbol_table) s =
     try
       (* Try to find binding in nearest block *)
@@ -75,45 +74,23 @@ let translate (stmts, functions) =
       | _ -> raise Not_found
   in
 
-  (* let rec func_lookup (curr_symbol_table : symbol_table) function_decls s =
-    (* for functions, we want to make sure we don't have links from a higher scope table back down *)
-    let rec nested_lookup (curr_symbol_table : symbol_table) s =
-      try
-        (curr_symbol_table, StringMap.find s curr_symbol_table.variables)
-      with Not_found -> (* Try looking in outer blocks *)
-        match curr_symbol_table.parent with
-          Some(parent) -> nested_lookup parent s
-        | _ -> raise (Failure "name not found")
-    in
-
-    try
-      StringMap.find s function_decls
-    with Not_found ->
-      let (new_scope, name) = nested_lookup curr_symbol_table s in
-      (match name with
-        FuncName n ->
-          (try StringMap.find n function_decls
-          with Not_found ->
-            func_lookup new_scope function_decls n)
-        | _ -> raise (Failure "not a function"))
-  in *)
-
   let rec expr (curr_symbol_table : symbol_table) function_decls builder (func_llvalue : L.llvalue) ((_, e) : sexpr) =
+    (* All literals are allocated on the stack, with pointers to them being returned *)
     match e with
-      SLiteral x -> let int_val = L.const_int i32_t x in (* this leaks memory
-      but who cares *)
+      SLiteral x -> let int_val = L.const_int i32_t x in
         let int_mem = L.build_alloca i32_t "int_mem" builder in
         let _ = L.build_store int_val int_mem builder in
         (curr_symbol_table, function_decls, builder, int_mem)
-    | SFliteral l -> let float_val = L.const_float_of_string float_t l in (* this *)
+    | SFliteral l -> let float_val = L.const_float_of_string float_t l in
         let float_mem = L.build_alloca float_t "float_mem" builder in
         let _ = L.build_store float_val float_mem builder in
         (curr_symbol_table, function_decls, builder, float_mem)
-    | SBoolLit b -> let bool_val = L.const_int i1_t (if b then 1 else 0) in (* this *)
+    | SBoolLit b -> let bool_val = L.const_int i1_t (if b then 1 else 0) in
         let bool_mem = L.build_alloca i1_t "bool_mem" builder in
         let _ = L.build_store bool_val bool_mem builder in
         (curr_symbol_table, function_decls, builder, bool_mem)
     | SId s ->
+        (* Dereference a pointer to the variable's memory location *)
         let address = lookup curr_symbol_table s in
         (curr_symbol_table, function_decls, builder, L.build_load address s builder)
     | SChar c ->
@@ -127,23 +104,26 @@ let translate (stmts, functions) =
       let _ = L.build_store string_ptr dbl_string_ptr builder in
       (curr_symbol_table, function_decls, builder, dbl_string_ptr)
     | SNoexpr -> (curr_symbol_table, function_decls, builder, L.const_int i32_t 0)
-    | SExec (e1, e2) -> let struct_space = L.build_malloc exec_t "struct_space" builder in
-                        let path_ptr = L.build_struct_gep struct_space 0 "path_ptr" builder in
-                        let (_, _, builder, new_value) = (expr curr_symbol_table function_decls builder func_llvalue e1) in
-                        let _ = L.build_store new_value path_ptr builder in
-                        let args_ptr = L.build_struct_gep struct_space 1 "args_ptr" builder in
-                        let casted_args_ptr = L.build_pointercast args_ptr (L.pointer_type (L.pointer_type list_t)) "casted_args_ptr" builder in
-                        let (_, _, builder, new_value') = (expr curr_symbol_table function_decls builder func_llvalue e2) in
-                        let _ = L.build_store new_value' casted_args_ptr builder in
-                        (curr_symbol_table, function_decls, builder, struct_space)
+    | SExec (e1, e2) -> 
+      (* Create space for an exec struct, populate it, and return the pointer *)
+      let struct_space = L.build_malloc exec_t "struct_space" builder in
+      let path_ptr = L.build_struct_gep struct_space 0 "path_ptr" builder in
+      let (_, _, builder, new_value) = (expr curr_symbol_table function_decls builder func_llvalue e1) in
+      let _ = L.build_store new_value path_ptr builder in
+      let args_ptr = L.build_struct_gep struct_space 1 "args_ptr" builder in
+      let casted_args_ptr = L.build_pointercast args_ptr (L.pointer_type (L.pointer_type list_t)) "casted_args_ptr" builder in
+      let (_, _, builder, new_value') = (expr curr_symbol_table function_decls builder func_llvalue e2) in
+      let _ = L.build_store new_value' casted_args_ptr builder in
+      (curr_symbol_table, function_decls, builder, struct_space)
     | SIndex (e1, e2) ->
+      (* Get the list pointer and the index value *)
       let (curr_symbol_table', new_function_decls, builder, e1') = expr curr_symbol_table function_decls builder func_llvalue e1 in
       let (curr_symbol_table'', new_function_decls', builder, e2') = expr curr_symbol_table' new_function_decls builder func_llvalue e2 in
       let index_val = L.build_load e2' "index_val" builder in
       let e1_pointer = L.build_malloc (L.pointer_type list_t) "e1 pointer" builder in
       let _ = L.build_store e1' e1_pointer builder in
 
-      (* we basically have a while loop that goes until counter == index *)
+      (* Basically have a while loop that goes until counter == index *)
       let counter_ptr = L.build_malloc i32_t "counter_ptr" builder in
       let _ = L.build_store (L.const_int i32_t 0) counter_ptr builder in
       let pred_bb = L.append_block context "index" func_llvalue in
@@ -151,7 +131,7 @@ let translate (stmts, functions) =
       let pred_builder = L.builder_at_end context pred_bb in
       let bool_val = L.build_icmp L.Icmp.Ne index_val (L.build_load counter_ptr "counter" pred_builder) "index pred" pred_builder in
 
-      (* in body of this loop, index to next node *)
+      (* In body of this loop, index to next node *)
       let index_body_bb = L.append_block context "index_body" func_llvalue in
       let index_body_builder = L.builder_at_end context index_body_bb in
       let counter = L.build_add (L.build_load counter_ptr "counter" index_body_builder) (L.const_int i32_t 1) "increment counter" index_body_builder in
@@ -165,11 +145,13 @@ let translate (stmts, functions) =
       let _ = L.build_store casted_ptr_ptr e1_pointer index_body_builder in
       let _ = L.build_br pred_bb index_body_builder in
 
-      (* once loop is done, dereference ptr to get element *)
+      (* Once loop is done, dereference ptr to get element *)
       let merge_bb = L.append_block context "merge" func_llvalue in
       let _ = L.build_cond_br bool_val index_body_bb merge_bb pred_builder in
       let merge_body_builder = L.builder_at_end context merge_bb in
       let elem_ptr_ptr = L.build_struct_gep (L.build_load e1_pointer "get struct" merge_body_builder) 0 "elem_ptr_ptr" merge_body_builder in
+
+      (* Cast pointer to the type of the list element *)
       let ty = (match (fst e1) with
               List_type typ  -> typ
               | _ -> raise (Failure "should have been caught in semant"))
@@ -187,23 +169,27 @@ let translate (stmts, functions) =
           let (new_symbol_table, new_function_decls'', builder, ptr) = expr curr_symbol_table new_function_decls' builder func_llvalue e1
           in let (_, _, builder, e2') = expr curr_symbol_table new_function_decls'' builder func_llvalue e2 in
           let e2' = (match (snd e1) with
+            (* Special cases for index and path because those need to dereference the value being assigned to them *)
             SIndex _ -> L.build_load e2' "true_value" builder
             | SPreUnop (Path, _ ) -> L.build_load e2' "true_value" builder
             | _ -> e2')
           in
 
           let _ = L.build_store e2' ptr builder in
-          let new_function_decls''' = (match (fst e2) with
-                            Function _ -> (match (snd e2) with
-                                            SId s1 -> (match (snd e1) with
-                                              SBind (ty, n) ->
-                                              let mapping = StringMap.find s1 new_function_decls''
-                                                        in StringMap.add n mapping new_function_decls''
-                                                | _  -> raise (Failure "Only binds can be assigned"))
-                                            | _ -> raise (Failure "Only ids can be assigned"))
-                            | _ -> new_function_decls'')
+          let new_function_decls''' = 
+          (* If it's a function variable, update the function_decls *)
+          (match (fst e2) with
+              Function _ -> (match (snd e2) with
+                              SId s1 -> (match (snd e1) with
+                                SBind (ty, n) ->
+                                let mapping = StringMap.find s1 new_function_decls''
+                                          in StringMap.add n mapping new_function_decls''
+                                  | _  -> raise (Failure "Only binds can be assigned"))
+                              | _ -> raise (Failure "Only ids can be assigned"))
+              | _ -> new_function_decls'')
           in
           (new_symbol_table, new_function_decls''', builder, e2')
+        (* For operations, need to dereference both sides and store the result back to the memory location *)
         | Add -> (match t with
           Float ->
             let float_mem = L.build_alloca float_t "int_mem" builder in
@@ -353,8 +339,10 @@ let translate (stmts, functions) =
           | _ -> raise (Failure "semant should have caught neq with invalid types")
         )
         | Cons -> let (t2, _) = e2 in
-        (match t2 with
+          (match t2 with
+            (* Cons to an empty list means we need to make a new list *)
             EmptyList -> expr curr_symbol_table function_decls builder func_llvalue (List_type t, (SList [e1]))
+            (* Cons to an existing list means that we need to append a new node to an already existing head and move the head to the new node *)
             | List_type _ ->
               let value = e1' in
               let enum_type = match (fst e1) with
@@ -371,7 +359,6 @@ let translate (stmts, functions) =
               let _ = L.build_store value value_ptr builder in
               (* allocate and fill a list node *)
 
-              (* allocate and fill a list node *)
               let struct_space = L.build_malloc list_t "list_node" builder in
               let struct_val_ptr = L.build_struct_gep struct_space 0
               "struct_val_ptr" builder in
@@ -390,35 +377,35 @@ let translate (stmts, functions) =
               let _ = L.build_store casted_val casted_val_ptr builder in
               let _ = L.build_store casted_ty casted_ty_ptr builder in
               (* put value of element into the allocated space *)
-              (curr_symbol_table, function_decls, builder, struct_space )
-        )
+              (curr_symbol_table, function_decls, builder, struct_space ))
         | _ -> raise (Failure "not yet implemented other binops")
     )
     | SPreUnop(op, e) -> (match op with
         Run ->
-              let (_, _, builder, exec) = expr curr_symbol_table function_decls builder func_llvalue e in
+          (* Grab path and args from exec struct and pass to execvp *)
+          let (_, _, builder, exec) = expr curr_symbol_table function_decls builder func_llvalue e in
 
-              let dbl_path_ptr = L.build_struct_gep exec 0 "dbl_path_ptr" builder in
-              let path_ptr = L.build_load dbl_path_ptr "path_ptr" builder in
-              let path = L.build_load path_ptr "path" builder in
-              let args_ptr = L.build_struct_gep exec 1 "args_ptr" builder in
-              let args = L.build_load args_ptr "args" builder in
-              let return_str = L.build_call execvp_func [| path ; args |] "execvp" builder in
-              let return_str_ptr = L.build_malloc (L.pointer_type i8_t) "return_str_ptr" builder in
-              let return_str_store = L.build_store return_str return_str_ptr builder in
-              (curr_symbol_table, function_decls, builder, return_str_ptr)
+          let dbl_path_ptr = L.build_struct_gep exec 0 "dbl_path_ptr" builder in
+          let path_ptr = L.build_load dbl_path_ptr "path_ptr" builder in
+          let path = L.build_load path_ptr "path" builder in
+          let args_ptr = L.build_struct_gep exec 1 "args_ptr" builder in
+          let args = L.build_load args_ptr "args" builder in
+
+          (* Execvp will convert from our list representation to the array needed *)
+          let return_str = L.build_call execvp_func [| path ; args |] "execvp" builder in
+          let return_str_ptr = L.build_malloc (L.pointer_type i8_t) "return_str_ptr" builder in
+          let return_str_store = L.build_store return_str return_str_ptr builder in
+          (curr_symbol_table, function_decls, builder, return_str_ptr)
       | Neg ->
           let (curr_symbol_table'', function_decls', builder, e') = expr curr_symbol_table function_decls builder func_llvalue e in
           let (t,_) = e in
           (match t with
           Float ->
-
             let float_mem = L.build_alloca float_t "float_mem" builder in
             let new_float =  L.build_fneg (L.build_load e' "neg float" builder ) "tmp" builder in
             let _ = L.build_store new_float float_mem builder in
             (curr_symbol_table'', function_decls', builder, float_mem)
           | Int ->
-            (* let (_, _, e') = expr curr_symbol_table function_decls builder e in *)
             let int_mem = L.build_alloca i32_t "int_mem" builder in
             let new_int =L.build_neg (L.build_load e' "neg int" builder) "tmp" builder in
             let _ = L.build_store new_int int_mem builder in
@@ -436,91 +423,80 @@ let translate (stmts, functions) =
             (curr_symbol_table'', function_decls', builder, bool_mem)
             | _ -> raise (Failure "semant should have caught not invalid type"))
       | Path ->
+          (* Get a pointer to the path of a list *)
           let (curr_symbol_table', function_decls', builder, exec) = expr curr_symbol_table function_decls builder func_llvalue e in
           let dbl_path_ptr = L.build_struct_gep exec 0 "dbl_path_ptr" builder in
           let path_ptr = L.build_load dbl_path_ptr "path_ptr" builder in
           (curr_symbol_table', function_decls', builder, path_ptr)
       | _   -> raise (Failure "preuop not implemented"))
-    | SList l -> (match l with
+    | SList l -> (* Returns a pointer to the first node in the list *)
+      (match l with
       [] -> (curr_symbol_table, function_decls, builder, L.const_pointer_null (L.pointer_type list_t))
-                                      (* pointer to first element *)
       | first :: rest ->
-                        let enum_type = match (fst first) with
-                        Int -> L.const_int i32_t 0
-                        | Float -> L.const_int i32_t 1
-                        | Bool -> L.const_int i32_t 2
-                        | Char -> L.const_int i32_t 3
-                        | String -> L.const_int i32_t 4
-                        | _  -> L.const_int i32_t 5
-                        in
-                        let (_, function_decls', builder, value) = expr curr_symbol_table function_decls builder func_llvalue first
-                        in
+            let enum_type = match (fst first) with
+            Int -> L.const_int i32_t 0
+            | Float -> L.const_int i32_t 1
+            | Bool -> L.const_int i32_t 2
+            | Char -> L.const_int i32_t 3
+            | String -> L.const_int i32_t 4
+            | _  -> L.const_int i32_t 5
+            in
+            let (_, function_decls', builder, value) = expr curr_symbol_table function_decls builder func_llvalue first
+            in
 
-                        (* allocate space for the element and store *)
-                        let value_ptr = L.build_malloc (L.pointer_type (ltype_of_typ (fst
-                        first))) "value_ptr" builder in
-                          (* to do: strings are pointers but other things are
-                          not *)
-                        let _ = L.build_store value value_ptr builder in
-                        (* allocate and fill a list node *)
+            (* allocate space for the element and store *)
+            let value_ptr = L.build_malloc (L.pointer_type (ltype_of_typ (fst
+            first))) "value_ptr" builder in
+              (* to do: strings are pointers but other things are
+              not *)
+            let _ = L.build_store value value_ptr builder in
+            (* allocate and fill a list node *)
 
-                        (* allocate and fill a list node *)
-                        let struct_space = L.build_malloc list_t "list_node" builder in
-                        let struct_val_ptr = L.build_struct_gep struct_space 0
-                        "struct_val_ptr" builder in
-                        let struct_ptr_ptr = L.build_struct_gep struct_space 1
-                        "struct_ptr_ptr" builder in
-                        let struct_ty_ptr = L.build_struct_gep struct_space 2
-                        "struct_ty_ptr" builder in
+            (* allocate and fill a list node *)
+            let struct_space = L.build_malloc list_t "list_node" builder in
+            let struct_val_ptr = L.build_struct_gep struct_space 0
+            "struct_val_ptr" builder in
+            let struct_ptr_ptr = L.build_struct_gep struct_space 1
+            "struct_ptr_ptr" builder in
+            let struct_ty_ptr = L.build_struct_gep struct_space 2
+            "struct_ty_ptr" builder in
 
-                        let (_, function_decls'', builder, list_ptr) = expr curr_symbol_table function_decls' builder func_llvalue (List_type (fst first), SList(rest))
-                        in
+            let (_, function_decls'', builder, list_ptr) = expr curr_symbol_table function_decls' builder func_llvalue (List_type (fst first), SList(rest))
+            in
 
-                        let casted_ptr_ptr = L.build_pointercast struct_ptr_ptr (L.pointer_type (L.pointer_type list_t)) "casted_ptr_ptr" builder in
-                        let _ = L.build_store list_ptr casted_ptr_ptr builder in
-                        let casted_val_ptr = L.build_pointercast struct_val_ptr (L.pointer_type (L.pointer_type i8_t)) "casted_val_ptr" builder in
-                        let casted_val = L.build_pointercast value_ptr (L.pointer_type i8_t) "casted_val" builder in
-                        let casted_ty_ptr = L.build_pointercast struct_ty_ptr (L.pointer_type i32_t) "casted_ty_ptr" builder in
-                        let casted_ty = L.build_pointercast enum_type i32_t "casted_ty" builder in
-                        let _ = L.build_store casted_val casted_val_ptr builder in
-                        let _ = L.build_store casted_ty casted_ty_ptr builder in
-                        (* put value of element into the allocated space *)
-                        (curr_symbol_table, function_decls'', builder, struct_space ))
-
-                        (* use build store *)
-      | SAssign (s, e) -> let address = lookup curr_symbol_table s in
-                          let (_, function_decls', builder, e') = expr curr_symbol_table function_decls builder func_llvalue e in
-                          let _  = L.build_store e' address builder in
-                          let new_function_decls = (match (fst e) with
-                            Function _ -> (match (snd e) with
-                                            SId s1 -> let mapping = StringMap.find s1 function_decls'
-                                                      in StringMap.add s mapping function_decls'
-                                               | _  -> raise (Failure "Only ids can be assigned"))
-                           | _ -> function_decls')
-                          in (curr_symbol_table, new_function_decls, builder, e')
-                          (* (match address with
-
-                            Llvalue llval ->
-                              let (_, e') = expr curr_symbol_table function_decls builder e in
-                              let _  = L.build_store e' llval builder in (curr_symbol_table, e')
-                          | FuncName _ ->
-                            (match e with
-                            (_, SId fname) -> let new_vars = StringMap.add s (FuncName(fname)) curr_symbol_table.variables in
-                                              ({ variables = new_vars ; parent = curr_symbol_table.parent }, L.const_stringz context fname)
-                            | _ -> raise (Failure "semant should have caught assignment to nonexistent function"))) *)
+            let casted_ptr_ptr = L.build_pointercast struct_ptr_ptr (L.pointer_type (L.pointer_type list_t)) "casted_ptr_ptr" builder in
+            let _ = L.build_store list_ptr casted_ptr_ptr builder in
+            let casted_val_ptr = L.build_pointercast struct_val_ptr (L.pointer_type (L.pointer_type i8_t)) "casted_val_ptr" builder in
+            let casted_val = L.build_pointercast value_ptr (L.pointer_type i8_t) "casted_val" builder in
+            let casted_ty_ptr = L.build_pointercast struct_ty_ptr (L.pointer_type i32_t) "casted_ty_ptr" builder in
+            let casted_ty = L.build_pointercast enum_type i32_t "casted_ty" builder in
+            let _ = L.build_store casted_val casted_val_ptr builder in
+            let _ = L.build_store casted_ty casted_ty_ptr builder in
+            (* put value of element into the allocated space *)
+            (curr_symbol_table, function_decls'', builder, struct_space ))
+      | SAssign (s, e) -> 
+          (* Get memory associated with a variable and update it *)
+          let address = lookup curr_symbol_table s in
+          let (_, function_decls', builder, e') = expr curr_symbol_table function_decls builder func_llvalue e in
+          let _  = L.build_store e' address builder in
+          let new_function_decls = (match (fst e) with
+            Function _ -> (match (snd e) with
+                            SId s1 -> let mapping = StringMap.find s1 function_decls'
+                                      in StringMap.add s mapping function_decls'
+                                | _  -> raise (Failure "Only ids can be assigned"))
+            | _ -> function_decls')
+          in (curr_symbol_table, new_function_decls, builder, e')
       | SBind (ty, n)  ->
-            let ptr = L.build_malloc ( L.pointer_type (ltype_of_typ ty)) "variable ptr" builder in
-            let new_sym_table = StringMap.add n ptr curr_symbol_table.variables in
-            ({ variables = new_sym_table ; parent = curr_symbol_table.parent }, function_decls, builder, ptr)
-        (* (match ty with
-          Function _ -> let new_sym_table = StringMap.add n (FuncName("")) curr_symbol_table.variables in
-                  ({ variables = new_sym_table ; parent = curr_symbol_table.parent }, L.const_stringz context n)
-          | _ ->  let ptr = L.build_malloc ( L.pointer_type (ltype_of_typ ty)) "variable ptr" builder in
-                  let new_sym_table = StringMap.add n (Llvalue (ptr)) curr_symbol_table.variables in
-                  ({ variables = new_sym_table ; parent = curr_symbol_table.parent }, ptr)) *)
+          (* Bind is the only case where we need to allocate memory corresponding to a variable *)
+          let ptr = L.build_malloc ( L.pointer_type (ltype_of_typ ty)) "variable ptr" builder in
+          let new_sym_table = StringMap.add n ptr curr_symbol_table.variables in
+          ({ variables = new_sym_table ; parent = curr_symbol_table.parent }, function_decls, builder, ptr)
       | SCall (f, args) ->
+        (* Get all the variables for args, pass them to the function *)
         let (_, fdecl) = StringMap.find f function_decls in
         let fptr = lookup curr_symbol_table f in
+
+        (* All functions are held as pointers to the address of the function, so dereference *)
         let fval = L.build_load fptr "fval" builder in
         let llargs = List.map fourth (List.rev (List.map (expr curr_symbol_table function_decls builder func_llvalue) (List.rev args))) in
         let result = (match fdecl.styp with
@@ -528,27 +504,31 @@ let translate (stmts, functions) =
                     | _ -> f ^ "_result") in
         (curr_symbol_table, function_decls, builder, L.build_call fval (Array.of_list llargs) result builder)
         | _ -> raise(Failure "Calling a non function")
-
-      (* | _ -> raise (Failure "Expression not implemented yet") *)
   in
   let curr_symbol_table = { variables = StringMap.empty ; parent = None } in
   let rec stmt ((curr_symbol_table : symbol_table), (function_decls : (L.llvalue * sfunc_decl) StringMap.t), builder, (fdecl_option: sfunc_decl option), (func_llvalue : L.llvalue)) (statement : sstmt) =
     match statement with
       SReturn e -> (match fdecl_option with
-        Some(fdecl) ->  (match fdecl.styp with
-                      Void -> let _ = L.build_ret_void builder in
-                        (curr_symbol_table, function_decls, builder, fdecl_option, func_llvalue)
-                      | _ -> let ret_mem = L.build_malloc (ltype_of_typ fdecl.styp) "return malloc" builder in
-                              let ret = L.build_load (fourth (expr curr_symbol_table function_decls builder func_llvalue e)) "return load" builder in
-                              let _ = L.build_store ret ret_mem builder in
-                              let _ = L.build_ret ret_mem builder in
-                      (curr_symbol_table, function_decls, builder, fdecl_option, func_llvalue))
+        Some(fdecl) ->
+          (* Get the function return type and build the right return *)
+          (match fdecl.styp with
+            Void -> let _ = L.build_ret_void builder in
+              (curr_symbol_table, function_decls, builder, fdecl_option, func_llvalue)
+            | _ -> let ret_mem = L.build_malloc (ltype_of_typ fdecl.styp) "return malloc" builder in
+                    let ret = L.build_load (fourth (expr curr_symbol_table function_decls builder func_llvalue e)) "return load" builder in
+                    let _ = L.build_store ret ret_mem builder in
+                    let _ = L.build_ret ret_mem builder in
+            (curr_symbol_table, function_decls, builder, fdecl_option, func_llvalue))
       | None -> raise (Failure "semant should have caught return outside of a function"))
     | SBlock sl ->
+      (* Fold stmt over a block *)
       let new_symbol_table = { variables = StringMap.empty ; parent = Some curr_symbol_table} in
       List.fold_left stmt (new_symbol_table, function_decls, builder, fdecl_option, func_llvalue) sl
-    | SExpr e -> let (new_symbol_table, new_function_decls, builder, expr_val) = expr curr_symbol_table function_decls builder func_llvalue e in (new_symbol_table, new_function_decls, builder, fdecl_option, func_llvalue)
+    | SExpr e -> 
+      (* Evaluate an expression, but may possible lead to changes in the function_decls or builder *)
+      let (new_symbol_table, new_function_decls, builder, expr_val) = expr curr_symbol_table function_decls builder func_llvalue e in (new_symbol_table, new_function_decls, builder, fdecl_option, func_llvalue)
     | SIf (predicate, then_stmt, else_stmt) ->
+      (* Branch and return new builder to continue building from *)
       let (curr_symbol_table', new_function_decls, builder, bool_val) = expr curr_symbol_table function_decls builder func_llvalue predicate in
       let merge_bb = L.append_block context "merge" func_llvalue in
       let branch_instr = L.build_br merge_bb in
@@ -562,6 +542,7 @@ let translate (stmts, functions) =
       let _ = L.build_cond_br dereferenced_bool then_bb else_bb builder in
       (curr_symbol_table', new_function_decls, (L.builder_at_end context merge_bb), fdecl_option, func_llvalue)
     | SWhile (predicate, body) ->
+      (* Branch and return new builder to continue building from *)
       let pred_bb = L.append_block context "while" func_llvalue in
       let _ = L.build_br pred_bb builder in
       let body_bb = L.append_block context "while_body" func_llvalue in
@@ -574,10 +555,12 @@ let translate (stmts, functions) =
       let _ = L.build_cond_br dereferenced_bool body_bb merge_bb pred_builder in
       (curr_symbol_table, new_function_decls, (L.builder_at_end context merge_bb), fdecl_option, func_llvalue)
     | SFor (e1, e2, e3, body) ->
+      (* Branch and return new builder to continue building from *)
       stmt (curr_symbol_table, function_decls, builder, fdecl_option, func_llvalue) (SBlock [SExpr e1 ; SWhile (e2, SBlock [body ; SExpr e3])])
   in
-(* let func_builder = L.builder_at_end context (L.entry_block the_function) in *)
-let function_decls : (L.llvalue * sfunc_decl) StringMap.t =
+
+  (* Define addresses for the body of each function to go *)
+  let function_decls : (L.llvalue * sfunc_decl) StringMap.t =
     let function_decl m fdecl =
       let name = fdecl.sfname
       and formal_types =
@@ -590,23 +573,34 @@ let function_decls : (L.llvalue * sfunc_decl) StringMap.t =
       StringMap.add name (L.define_function name ftype the_module, fdecl) m in
     List.fold_left function_decl StringMap.empty functions
   in
-  let func_def name (fdef, fdecl) m =
-        let formal_types =
+
+  (* Helper function to add pointers to each global function to a map *)
+  let func_def name (fdef, fdecl) (m, builder) =
+    let formal_types =
       Array.of_list (List.map (fun (t,_) -> L.pointer_type (ltype_of_typ t)) fdecl.sformals) in
-      let return_type =
-        (match fdecl.styp with
-        Void -> void_t
-        | _ -> (L.pointer_type (ltype_of_typ fdecl.styp))) in
-      let ftype = L.function_type return_type formal_types in
-      let variable = L.build_malloc (L.pointer_type ftype) "function def" main_builder in
-      let _ = L.build_store fdef variable main_builder in
-      StringMap.add name variable m
-    in
-  let curr_symbol_table = { variables = StringMap.fold func_def function_decls StringMap.empty ; parent = None } in
+    let return_type =
+      (match fdecl.styp with
+      Void -> void_t
+      | _ -> (L.pointer_type (ltype_of_typ fdecl.styp))) in
+    let ftype = L.function_type return_type formal_types in
+    let variable = L.build_alloca (L.pointer_type ftype) "function def" builder in
+    let _ = L.build_store fdef variable builder in
+    (StringMap.add name variable m, builder)
+  in
+
+  (* Add every function to the main scope *)
+  let curr_symbol_table = { variables = (fst (StringMap.fold func_def function_decls (StringMap.empty, main_builder))) ; parent = None }
+  in
+
+  (* Build the body of each function using the addresses corresponding to each one *)
   let build_function_body fdecl =
     let (the_function, _) = StringMap.find fdecl.sfname function_decls in
     let func_builder = L.builder_at_end context (L.entry_block the_function) in
 
+    (* Use a symbol table that contains all the globally defined function *)
+    let curr_symbol_table = { variables = (fst (StringMap.fold func_def function_decls (StringMap.empty, func_builder))) ; parent = None } in
+
+    (* Create space for parameters *)
     let add_formal ((curr_symbol_table : symbol_table), function_decls) ((t : A.typ), n) p =
       let new_map =
           let old_map = curr_symbol_table.variables in
@@ -624,21 +618,18 @@ let function_decls : (L.llvalue * sfunc_decl) StringMap.t =
     in
     let ( formals_table, new_function_decls ) = List.fold_left2 add_formal (curr_symbol_table, function_decls) fdecl.sformals
         (Array.to_list (L.params the_function))
+
+    (* Go through the statements in each function body *)
     in let _ = (List.fold_left stmt (formals_table, new_function_decls, func_builder, Some fdecl, fst (StringMap.find fdecl.sfname new_function_decls)) (fdecl.sbody))
     in ()
   in
+
+  (* Build all functions *)
   let _ = List.iter build_function_body functions in
 
-  (* let curr_symbol_table =
-         let add_functions (curr_symbol_table : symbol_table) ((t : A.typ), n) p =
-            let old_map = curr_symbol_table.variables in
-            let variable = L.build_alloca (L.pointer_type (ltype_of_typ t)) n func_builder in
-            let _ = L.build_store p variable func_builder in
-            let new_map = StringMap.add n (Llvalue(variable)) old_map in
-            { variables = new_map ; parent = curr_symbol_table.parent }
-      in List.fold_left2 add_formal { variables = StringMap.empty ; parent = None } fdecl.sformals
-        (Array.to_list (L.params the_function)) *)
-  (* let curr_symbol_table = *)
+  (* Build all toplevel statements *)
   let (_, _, curr_builder, _, _) = (List.fold_left stmt (curr_symbol_table, function_decls, main_builder, None, main_func) (List.rev stmts)) in
+  
+  (* Wherever the program finishes, make that basic block return 0 *)
   let _ = L.build_ret (L.const_int i32_t 0) curr_builder in
   the_module
