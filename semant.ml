@@ -155,7 +155,17 @@ let check (stmts, functions) =
                     (match same with
                       true -> (symbol_table'', (ty1, SBinop((ty1, e1'), op, (ty2,
                       e2'))))
-                      | false -> raise (Failure ("index exprassign with incompatible types")))
+                      | false -> raise (Failure ("index exprassign with
+                      incompatible types")))
+      | (PreUnop (op1, _), ExprAssign) ->
+                    (match op1 with
+                      Path -> let same = ty2 = ty1 in
+                      (match same with
+                        true -> (symbol_table'', (ty1, SBinop((ty1, e1'), op, (ty2,
+                        e2'))))
+                        | false -> raise (Failure ("index exprassign with
+                        incompatible types")))
+                      | _ -> raise (Failure ("invalid preunop with exprassign")))
       | (_, ExprAssign) -> raise (Failure "expression assignment needs a bind")
       | (Bind _, _) -> raise (Failure "bind needs an expression assignment")
       | (_, Add) | (_, Mult) ->

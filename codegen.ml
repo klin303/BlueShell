@@ -1,16 +1,8 @@
 module L = Llvm
 module A = Ast
 open Sast
-(* todo
- * strings
- * lists
- * executables
- * run
- *)
 
 module StringMap = Map.Make(String)
-
-(* type symbol_value = L.llvalue *)
 
 type symbol_table = {
   (* Variables bound in current block *)
@@ -196,8 +188,10 @@ let translate (stmts, functions) =
           in let (_, _, builder, e2') = expr curr_symbol_table new_function_decls'' builder func_llvalue e2 in
           let e2' = (match (snd e1) with
             SIndex _ -> L.build_load e2' "true_value" builder
+            | SPreUnop (Path, _ ) -> L.build_load e2' "true_value" builder
             | _ -> e2')
           in
+
           let _ = L.build_store e2' ptr builder in
           let new_function_decls''' = (match (fst e2) with
                             Function _ -> (match (snd e2) with
@@ -441,6 +435,11 @@ let translate (stmts, functions) =
             let _ = L.build_store new_bool bool_mem builder in
             (curr_symbol_table'', function_decls', builder, bool_mem)
             | _ -> raise (Failure "semant should have caught not invalid type"))
+      | Path ->
+          let (curr_symbol_table', function_decls', builder, exec) = expr curr_symbol_table function_decls builder func_llvalue e in
+          let dbl_path_ptr = L.build_struct_gep exec 0 "dbl_path_ptr" builder in
+          let path_ptr = L.build_load dbl_path_ptr "path_ptr" builder in
+          (curr_symbol_table', function_decls', builder, path_ptr)
       | _   -> raise (Failure "preuop not implemented"))
     | SList l -> (match l with
       [] -> (curr_symbol_table, function_decls, builder, L.const_pointer_null (L.pointer_type list_t))

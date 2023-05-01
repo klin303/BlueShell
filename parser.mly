@@ -24,10 +24,10 @@ RANGLE OF ARROW/* structural tokens */
 /* precedence */
 %nonassoc ID
 %nonassoc NOELSE
-%left EXITCODE
-%left PATH RUN
-%left PIPE
 %nonassoc ELSE
+%left EXITCODE
+%left RUN
+%left PIPE
 %right ASSIGN
 %left OR
 %left AND
@@ -40,6 +40,7 @@ RANGLE OF ARROW/* structural tokens */
 %right LEN
 %left CONS
 %right LBRACKET LPAREN
+%right PATH
 
 %%
 
@@ -151,14 +152,14 @@ expr:
   | expr PIPE   expr          { Binop($1, Pipe, $3)    }
   | MINUS expr %prec NOT      { PreUnop(Neg, $2)       }
   | NOT expr                  { PreUnop(Not, $2)       }
+  | expr ASSIGN expr          { Binop($1, ExprAssign, $3) }
   | ID ASSIGN expr            { Assign($1, $3)         }
   | vdecl                     { Bind($1)               }
-  | expr ASSIGN expr          { Binop($1, ExprAssign, $3) }
   | ID LPAREN args_opt RPAREN { Call($1, $3)           }
   | LPAREN expr RPAREN        { $2                     }
   | expr EXITCODE             { PostUnop($1, ExitCode) }
   | index                     { $1                     }
-  | PATH expr                 { PreUnop(Path, $2)      }
+  | expr PATH                 { PreUnop(Path, $1)      }
   | RUN expr                  { PreUnop(Run, $2)       }
   | exec                      { $1                     }
   | list                      { $1                     }
