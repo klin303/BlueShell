@@ -11,5 +11,5 @@ string s = ./e5;
 exec e4 = e + e1 + e2;
 string s;
 s = ./e4;
-//./<"echo" withargs ["______________"]>;
-//./<"echo" withargs [s]>;
+./<"echo" withargs ["______________"]>;
+./<"echo" withargs [s]>;

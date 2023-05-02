@@ -45,6 +45,12 @@ test-compile.llvm.s
 test-compop1.exe
 test-compop1.llvm
 test-compop1.llvm.s
+test-concat1.exe
+test-concat1.llvm
+test-concat1.llvm.s
+test-concatseq1.exe
+test-concatseq1.llvm
+test-concatseq1.llvm.s
 test-cons1.exe
 test-cons1.llvm
 test-cons1.llvm.s
@@ -57,11 +63,4 @@ test-execcopy1.llvm.s
 test-execcopy2.exe
 test-execcopy2.llvm
 test-execcopy2.llvm.s
-test-floatarith1.exe
-test-floatarith1.llvm
-test-floatarith1.llvm.s
-test-for1.exe
-test-for1.llvm
-test-for1.llvm.s
-test-function1.exe
-t
+test-floatarit

@@ -472,9 +472,6 @@ let translate (stmts, functions) =
 
           let return_str = L.build_call recurse_exec_func [| exec |] "recurse_exec" else_builder in
           let return_str_store = L.build_store return_str return_str_ptr else_builder in
-          (* let null_malloc = L.build_malloc i8_t "" else_builder in
-          let _ = L.build_store (L.const_null i8_t) null_malloc else_builder in
-          let _ = L.build_store null_malloc return_str_ptr else_builder in *)
 
           (* After switch statement, finish getting the resulting string *)
           let _ = L.build_br merge_bb else_builder in
@@ -482,7 +479,6 @@ let translate (stmts, functions) =
 
           (* Execute correct code depending on whether the executable is complex or not *)
           let _ = L.build_cond_br complex_bool then_bb else_bb builder in
-
 
           (curr_symbol_table, function_decls, (L.builder_at_end context merge_bb), return_str_ptr)
       | Neg ->
@@ -514,8 +510,6 @@ let translate (stmts, functions) =
       | Path ->
           (* Get a pointer to the path of a list *)
           let (curr_symbol_table', function_decls', builder, comp_exec) = expr curr_symbol_table function_decls builder func_llvalue e in
-          (* let complex_bool_ptr = L.build_struct_gep comp_exec 0 "complex_bool_ptr" builder in
-          let complex_bool = L.build_load complex_bool_ptr "complex_bool" builder in *)
           let simple_exec_ptr = L.build_struct_gep comp_exec 1 "exec_ptr" builder in
           let casted_ptr = L.build_pointercast simple_exec_ptr (L.pointer_type (L.pointer_type exec_t)) "cast_run" builder in
           let simple_exec = L.build_load casted_ptr "exec" builder in

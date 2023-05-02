@@ -27,7 +27,6 @@ RANGLE OF ARROW/* structural tokens */
 %nonassoc ELSE
 %left EXITCODE
 %left RUN
-%left PIPE
 %right ASSIGN
 %left OR
 %left AND
@@ -36,6 +35,7 @@ RANGLE OF ARROW/* structural tokens */
 %left LEQ GEQ
 %left PLUS MINUS
 %left TIMES DIVIDE
+%left PIPE
 %right NOT
 %right LEN
 %left CONS
