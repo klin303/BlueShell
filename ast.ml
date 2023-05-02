@@ -14,7 +14,7 @@ type uop = Neg | Not | ExitCode | Run | Path | Length
 
 (* types *)
 type typ = Int | Bool | Float | Void | Exec | Char | String | List_type of typ |
-           EmptyList | Function of (typ list * typ)
+           EmptyList | Function of (typ list * typ) | ComplexExec
 
 (* bind sets a variable name to a type *)
 type bind = typ * string
@@ -96,6 +96,7 @@ let rec string_of_typ = function
   | Float ->      "float"
   | Void ->       "void"
   | Exec ->       "exec"
+  | ComplexExec -> "exec"
   | Char ->       "char"
   | String ->     "string"
   | List_type(t) ->    "list of " ^ string_of_typ t

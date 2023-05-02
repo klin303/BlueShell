@@ -5,27 +5,73 @@
 #include "string.h"
 #include "assert.h"
 
+struct list {
+    void **val;
+    struct list* next;
+    int typ;
+};
+
+struct simple_exec {
+    char **path; 
+    struct list* args;
+};
+
+struct complex_exec {
+    int is_complex;
+    void *e1;
+    void *e2;
+    int op;
+};
+
+char* recurse_exec(struct complex_exec *e);
+char* execvp_helper(char *path, struct list *orig_args);
+
+enum Type { INT = 0, FLOAT = 1, BOOL = 2, CHAR = 3, STRING = 4, OTHER = 5};
+enum Opcode { CONCAT = 0, SEQ = 1, PIPE = 2};
+
+
+char* recurse_exec(struct complex_exec *e) {
+
+    if (e->is_complex == 0) {
+      struct simple_exec* simple = (struct simple_exec*)(e->e1);
+      char *simple_path = *(char **)simple->path;
+      fprintf(stderr, "path %s", simple_path);
+
+      struct list *orig_args = simple->args;
+      return execvp_helper(simple_path, orig_args);
+    }
+    
+
+    switch (e->op) {
+      case CONCAT:
+        fprintf(stderr, "in concat\n");
+        break;
+
+      case SEQ:
+        fprintf(stderr, "in seq\n");
+        break;
+
+      case PIPE:
+        fprintf(stderr, "in pipe\n");
+        break;
+    }
+    return "testing";
+}
+
+
 /* execvp_helper
 Purpose: Forks and calls execvp on the path and arguments, interfacing with the Blue Shell codegen.
 Arguments: char* representing path, char* array representing arguments
 */
-
-struct exec {
-    void **val;
-    struct exec* next;
-    int typ;
-};
-
-enum Type { INT = 0, FLOAT = 1, BOOL = 2, CHAR = 3, STRING = 4, OTHER = 5};
-
-
-
-char* execvp_helper(char *path, struct exec *orig_args) {
+char* execvp_helper(char *path, struct list *orig_args) {
+        assert(path);
+        assert(orig_args);
         int i = 0;
-        struct exec *args_copy = orig_args;
+        struct list *args_copy = orig_args;
 
         char* str;
         char** temp;
+
 
         // count the number of args
         while (args_copy != NULL) {
@@ -77,7 +123,7 @@ char* execvp_helper(char *path, struct exec *orig_args) {
         args[i + 1] = NULL;
 
         // fork and run the executable
-        
+
         // for (int x = 0; x < i + 2; x++) {
         //   fprintf(stderr, "ARGS %d: %s\n", x, args[x]);
         // }
@@ -108,3 +154,4 @@ char* execvp_helper(char *path, struct exec *orig_args) {
 
         return buf;
 }
+

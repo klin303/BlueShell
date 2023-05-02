@@ -25,6 +25,9 @@ let translate (stmts, functions) =
   let list_t     = L.struct_type context [| L.pointer_type i8_t (* value *) ; L.pointer_type i8_t (* next*) ; i32_t |]
   in
   let exec_t     = L.struct_type context [| L.pointer_type string_t (* path *) ; L.pointer_type list_t (* args *) |]
+  in
+  let complex_exec_t = L.struct_type context [| i1_t (* 0 for simple, 1 for complex *) ; L.pointer_type i8_t (* left operand *) ; L.pointer_type i8_t (* right operand *) ; i32_t (* op *) |]
+
   (* Create an LLVM module -- this is a "container" into which we'll
      generate actual code *)
   and the_module = L.create_module context "BlueShell" in
@@ -37,7 +40,8 @@ let translate (stmts, functions) =
     | A.Void    -> void_t
     | A.Char    -> string_t
     | A.String  -> string_t
-    | A.Exec    -> exec_t
+    | A.Exec    -> complex_exec_t
+    | A.ComplexExec -> complex_exec_t
     | A.List_type ty    -> list_t
     | A.Function (ty_list, ty) -> let ret_type = L.pointer_type (ltype_of_typ ty) in
                                  let ltype_helper ty1 =  (L.pointer_type (ltype_of_typ ty1)) in
@@ -51,6 +55,14 @@ let translate (stmts, functions) =
       L.var_arg_function_type (L.pointer_type i8_t) [| L.pointer_type i8_t;  L.pointer_type list_t |] in
   let execvp_func : L.llvalue =
      L.declare_function "execvp_helper" execvp_t the_module in
+  let strcat_t : L.lltype =
+      L.var_arg_function_type (L.pointer_type i8_t) [| L.pointer_type i8_t;  L.pointer_type i8_t |] in
+  let strcat_func : L.llvalue =
+     L.declare_function "strcat" strcat_t the_module in
+  let recurse_exec_t : L.lltype =
+      L.var_arg_function_type (L.pointer_type i8_t) [| L.pointer_type complex_exec_t |] in
+  let recurse_exec_func : L.llvalue =
+     L.declare_function "recurse_exec" recurse_exec_t the_module in
 
   (* Helper function, since the llvalue being returned from expr is the 4th elem of a tuple *)
   let fourth x =
@@ -104,7 +116,7 @@ let translate (stmts, functions) =
       let _ = L.build_store string_ptr dbl_string_ptr builder in
       (curr_symbol_table, function_decls, builder, dbl_string_ptr)
     | SNoexpr -> (curr_symbol_table, function_decls, builder, L.const_int i32_t 0)
-    | SExec (e1, e2) -> 
+    | SExec (e1, e2) ->
       (* Create space for an exec struct, populate it, and return the pointer *)
       let struct_space = L.build_malloc exec_t "struct_space" builder in
       let path_ptr = L.build_struct_gep struct_space 0 "path_ptr" builder in
@@ -114,7 +126,13 @@ let translate (stmts, functions) =
       let casted_args_ptr = L.build_pointercast args_ptr (L.pointer_type (L.pointer_type list_t)) "casted_args_ptr" builder in
       let (_, _, builder, new_value') = (expr curr_symbol_table function_decls builder func_llvalue e2) in
       let _ = L.build_store new_value' casted_args_ptr builder in
-      (curr_symbol_table, function_decls, builder, struct_space)
+      let complex_exec_space = L.build_malloc complex_exec_t "complex exec struct" builder in
+      let bool_ptr = L.build_struct_gep complex_exec_space 0 "complex bool" builder in
+      let exec_ptr = L.build_struct_gep complex_exec_space 1 "complex e1" builder in
+      let _ = L.build_store (L.const_int i1_t 1) bool_ptr builder in
+      let casted_struct_space = L.build_pointercast struct_space (L.pointer_type i8_t) "casted_malloc" builder in
+      let _ = L.build_store casted_struct_space exec_ptr builder in
+      (curr_symbol_table, function_decls, builder, complex_exec_space)
     | SIndex (e1, e2) ->
       (* Get the list pointer and the index value *)
       let (curr_symbol_table', new_function_decls, builder, e1') = expr curr_symbol_table function_decls builder func_llvalue e1 in
@@ -174,9 +192,8 @@ let translate (stmts, functions) =
             | SPreUnop (Path, _ ) -> L.build_load e2' "true_value" builder
             | _ -> e2')
           in
-
           let _ = L.build_store e2' ptr builder in
-          let new_function_decls''' = 
+          let new_function_decls''' =
           (* If it's a function variable, update the function_decls *)
           (match (fst e2) with
               Function _ -> (match (snd e2) with
@@ -201,7 +218,20 @@ let translate (stmts, functions) =
             let new_int = L.build_add (L.build_load e1' "left side of add" builder) (L.build_load e2' "right side of add" builder) "tmp" builder in
             let _ = L.build_store new_int int_mem builder in
             (curr_symbol_table'', function_decls, builder, int_mem)
-          | Exec -> raise (Failure "exec add not implemented yet")
+          | Exec | ComplexExec ->
+            let complex_exec_space = L.build_malloc complex_exec_t "complex exec struct" builder in
+            let bool_ptr = L.build_struct_gep complex_exec_space 0 "complex bool" builder in
+            let exec1_ptr = L.build_struct_gep complex_exec_space 1 "complex e1" builder in
+            let exec2_ptr = L.build_struct_gep complex_exec_space 2 "complex e2" builder in
+            let op_ptr = L.build_struct_gep complex_exec_space 3 "complex op" builder in
+            let _ = L.build_store (L.const_int i1_t 0) bool_ptr builder in
+            let casted_e1 = L.build_pointercast e1' (L.pointer_type i8_t) "casted_e1" builder in
+            let _ = L.build_store casted_e1 exec1_ptr builder in
+            let casted_e2 = L.build_pointercast e2' (L.pointer_type i8_t) "casted_e2" builder in
+            let _ = L.build_store casted_e2 exec2_ptr builder in
+            let _ = L.build_store (L.const_int i32_t 0) op_ptr builder in
+            (curr_symbol_table'', function_decls, builder, complex_exec_space)
+
           | _ -> raise (Failure "semant should have caught add with invalid types")
         )
         | Sub -> (match t with
@@ -385,17 +415,53 @@ let translate (stmts, functions) =
           (* Grab path and args from exec struct and pass to execvp *)
           let (_, _, builder, exec) = expr curr_symbol_table function_decls builder func_llvalue e in
 
-          let dbl_path_ptr = L.build_struct_gep exec 0 "dbl_path_ptr" builder in
-          let path_ptr = L.build_load dbl_path_ptr "path_ptr" builder in
-          let path = L.build_load path_ptr "path" builder in
-          let args_ptr = L.build_struct_gep exec 1 "args_ptr" builder in
-          let args = L.build_load args_ptr "args" builder in
+          (* Determine whether to recurse or not *)
+          let complex_bool_ptr = L.build_struct_gep exec 0 "complex_bool_ptr" builder in
+          let complex_bool = L.build_load complex_bool_ptr "complex_bool" builder in
+          let return_str_ptr = L.build_malloc (L.pointer_type i8_t) "return_str_ptr" builder in
+
+          (* Connect then block for simple executables *)
+          let merge_bb = L.append_block context "merge" func_llvalue in
+          let branch_instr = L.build_br merge_bb in
+          let then_bb = L.append_block context "then" func_llvalue in
+          let then_builder = L.builder_at_end context then_bb in
+
+          (* Build then block for simple executables *)
+          let simple_exec_ptr = L.build_struct_gep exec 1 "exec_ptr" then_builder in
+          let casted_ptr = L.build_pointercast simple_exec_ptr (L.pointer_type (L.pointer_type exec_t)) "cast_run" then_builder in
+          let simple_exec = L.build_load casted_ptr "exec" then_builder in
+
+          let dbl_path_ptr = L.build_struct_gep simple_exec 0 "dbl_path_ptr" then_builder in
+          let path_ptr = L.build_load dbl_path_ptr "path_ptr" then_builder in
+          let path = L.build_load path_ptr "path" then_builder in
+          let args_ptr = L.build_struct_gep simple_exec 1 "args_ptr" then_builder in
+          let args = L.build_load args_ptr "args" then_builder in
 
           (* Execvp will convert from our list representation to the array needed *)
-          let return_str = L.build_call execvp_func [| path ; args |] "execvp" builder in
-          let return_str_ptr = L.build_malloc (L.pointer_type i8_t) "return_str_ptr" builder in
-          let return_str_store = L.build_store return_str return_str_ptr builder in
-          (curr_symbol_table, function_decls, builder, return_str_ptr)
+          let return_str = L.build_call execvp_func [| path ; args |] "execvp" then_builder in
+          let return_str_store = L.build_store return_str return_str_ptr then_builder in
+          let _ = L.build_br merge_bb then_builder in
+          (* End of then block *)
+
+          (* Build else block for complex executables *)
+          let else_bb = L.append_block context "else" func_llvalue in
+          let else_builder = L.builder_at_end context else_bb in
+
+          let return_str = L.build_call recurse_exec_func [| exec |] "recurse_exec" else_builder in
+          let return_str_store = L.build_store return_str return_str_ptr else_builder in
+          (* let null_malloc = L.build_malloc i8_t "" else_builder in
+          let _ = L.build_store (L.const_null i8_t) null_malloc else_builder in
+          let _ = L.build_store null_malloc return_str_ptr else_builder in *)
+
+          (* After switch statement, finish getting the resulting string *)
+          let _ = L.build_br merge_bb else_builder in
+          (* End of else block *)
+
+          (* Execute correct code depending on whether the executable is complex or not *)
+          let _ = L.build_cond_br complex_bool then_bb else_bb builder in
+
+
+          (curr_symbol_table, function_decls, (L.builder_at_end context merge_bb), return_str_ptr)
       | Neg ->
           let (curr_symbol_table'', function_decls', builder, e') = expr curr_symbol_table function_decls builder func_llvalue e in
           let (t,_) = e in
@@ -424,8 +490,13 @@ let translate (stmts, functions) =
             | _ -> raise (Failure "semant should have caught not invalid type"))
       | Path ->
           (* Get a pointer to the path of a list *)
-          let (curr_symbol_table', function_decls', builder, exec) = expr curr_symbol_table function_decls builder func_llvalue e in
-          let dbl_path_ptr = L.build_struct_gep exec 0 "dbl_path_ptr" builder in
+          let (curr_symbol_table', function_decls', builder, comp_exec) = expr curr_symbol_table function_decls builder func_llvalue e in
+          (* let complex_bool_ptr = L.build_struct_gep comp_exec 0 "complex_bool_ptr" builder in
+          let complex_bool = L.build_load complex_bool_ptr "complex_bool" builder in *)
+          let simple_exec_ptr = L.build_struct_gep comp_exec 1 "exec_ptr" builder in
+          let casted_ptr = L.build_pointercast simple_exec_ptr (L.pointer_type (L.pointer_type exec_t)) "cast_run" builder in
+          let simple_exec = L.build_load casted_ptr "exec" builder in
+          let dbl_path_ptr = L.build_struct_gep simple_exec 0 "dbl_path_ptr" builder in
           let path_ptr = L.build_load dbl_path_ptr "path_ptr" builder in
           (curr_symbol_table', function_decls', builder, path_ptr)
       | _   -> raise (Failure "preuop not implemented"))
@@ -452,7 +523,6 @@ let translate (stmts, functions) =
             let _ = L.build_store value value_ptr builder in
             (* allocate and fill a list node *)
 
-            (* allocate and fill a list node *)
             let struct_space = L.build_malloc list_t "list_node" builder in
             let struct_val_ptr = L.build_struct_gep struct_space 0
             "struct_val_ptr" builder in
@@ -474,7 +544,7 @@ let translate (stmts, functions) =
             let _ = L.build_store casted_ty casted_ty_ptr builder in
             (* put value of element into the allocated space *)
             (curr_symbol_table, function_decls'', builder, struct_space ))
-      | SAssign (s, e) -> 
+      | SAssign (s, e) ->
           (* Get memory associated with a variable and update it *)
           let address = lookup curr_symbol_table s in
           let (_, function_decls', builder, e') = expr curr_symbol_table function_decls builder func_llvalue e in
@@ -524,7 +594,7 @@ let translate (stmts, functions) =
       (* Fold stmt over a block *)
       let new_symbol_table = { variables = StringMap.empty ; parent = Some curr_symbol_table} in
       List.fold_left stmt (new_symbol_table, function_decls, builder, fdecl_option, func_llvalue) sl
-    | SExpr e -> 
+    | SExpr e ->
       (* Evaluate an expression, but may possible lead to changes in the function_decls or builder *)
       let (new_symbol_table, new_function_decls, builder, expr_val) = expr curr_symbol_table function_decls builder func_llvalue e in (new_symbol_table, new_function_decls, builder, fdecl_option, func_llvalue)
     | SIf (predicate, then_stmt, else_stmt) ->
@@ -629,7 +699,7 @@ let translate (stmts, functions) =
 
   (* Build all toplevel statements *)
   let (_, _, curr_builder, _, _) = (List.fold_left stmt (curr_symbol_table, function_decls, main_builder, None, main_func) (List.rev stmts)) in
-  
+
   (* Wherever the program finishes, make that basic block return 0 *)
   let _ = L.build_ret (L.const_int i32_t 0) curr_builder in
   the_module

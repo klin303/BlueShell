@@ -1,6 +1,5 @@
 (* Semantic checking for the Blue Shell compiler *)
 
-
 open Ast
 open Sast
 
@@ -20,25 +19,6 @@ type symbol_table = {
 
 let check (stmts, functions) =
 
-  (* Check if a certain kind of binding has void type or is a duplicate
-    of another, previously checked binding *)
-  (* let check_binds (kind : string) (to_check : bind list) =
-    let name_compare (_, n1) (_, n2) = compare n1 n2 in
-    let check_it checked binding =
-      let void_err = "illegal void " ^ kind ^ " " ^ snd binding
-      and dup_err = "duplicate " ^ kind ^ " " ^ snd binding
-      in match binding with
-        (* No void bindings *)
-        (Void, _) -> raise (Failure void_err)
-      | (_, n1) -> match checked with
-                    (* No duplicate bindings *)
-                      ((_, n2) :: _) when n1 = n2 -> raise (Failure dup_err)
-                    | _ -> binding :: checked
-
-    in let _ = List.fold_left check_it [] (List.sort name_compare to_check)
-        in to_check
-  in *)
-
   let check_arg_types is_valid args1 args2  = is_valid && (args1 = args2)
   in
 
@@ -55,6 +35,7 @@ let check (stmts, functions) =
                   true -> Function (args1, ret1)
                   | false -> raise (Failure err))
           | false -> raise (Failure err))
+      | (ComplexExec, Exec) | (Exec, ComplexExec) -> rvaluet
       | _ -> (match lvaluet = rvaluet with
               true -> lvaluet
             | false -> raise (Failure err)))
@@ -77,35 +58,26 @@ let check (stmts, functions) =
 
   in
 
-
-  (* Add function name to symbol table *)
-  (* let add_func map fd =
-    let dup_err = "duplicate function " ^ fd.fname
-    and make_err er = raise (Failure er)
-    and n = fd.fname (* Name of the function *)
-    in match fd with (* No duplicate functions or redefinitions of built-ins *)
-        _ when StringMap.mem n map -> make_err dup_err
-       | _ ->  StringMap.add n fd map
-  in *)
-
   let add_func_symbol_table map fd =
     let n = fd.fname (* Name of the function *)
     and ty = Function(List.map fst fd.formals, fd.typ) in
     add_bind map (ty, n)
   in
   (* Collect all other function names into one symbol table *)
-  (* let function_decls = List.fold_left add_func StringMap.empty functions
   (* Start with empty environment and map over statements, carrying updated
   environment as you go *)
-  in *)
   let empty_env = { variables = StringMap.empty ; parent = None }
   in
   let env_with_functions = List.fold_left add_func_symbol_table empty_env functions
   in
-  (* let find_func s =
-    try StringMap.find s function_decls
-    with Not_found -> raise (Failure ("unrecognized function " ^ s))
-  in *)
+
+  let same_func ((ty1 : typ), (ty2 : typ)) =
+    (match ty1 = ty2 with
+      true -> true
+      | _ -> (match (ty1, ty2) with
+        (Exec, ComplexExec) | (ComplexExec, Exec) -> true
+        | _ -> false))
+  in
 
   let rec expr (curr_symbol_table : symbol_table) expression =
   match expression with
@@ -121,7 +93,6 @@ let check (stmts, functions) =
     (match ty1 with
       String ->
         (match ty2 with
-          (* !!!!!!!!CHANGE TO ACCEPT AUTOCASTING!!!!!!!!!!! *)
           List_type ty -> (curr_symbol_table, (Exec, (SExec ((ty1, e1'), (ty2, e2')))))
           | EmptyList -> (curr_symbol_table, (Exec, (SExec ((ty1, e1'), (List_type String, SList [])))))
           | _ -> raise (Failure ("args must be a list of string")))
@@ -140,7 +111,7 @@ let check (stmts, functions) =
     | _ ->
     (match (e1, op) with
       (Bind b, ExprAssign) ->
-                    let same = ty2 = ty1 in
+                    let same = same_func(ty1, ty2) in
                     let ty = (match e1' with
                       SBind b when same -> fst b
                       | _ -> (match ty1 with
@@ -151,7 +122,7 @@ let check (stmts, functions) =
                     in (symbol_table'', (ty, SBinop((ty1, e1'), op, (ty2,
                     e2'))))
       | (Index _, ExprAssign) ->
-                    let same = ty2 = ty1 in
+                    let same = same_func(ty1, ty2) in
                     (match same with
                       true -> (symbol_table'', (ty1, SBinop((ty1, e1'), op, (ty2,
                       e2'))))
@@ -159,7 +130,7 @@ let check (stmts, functions) =
                       incompatible types")))
       | (PreUnop (op1, _), ExprAssign) ->
                     (match op1 with
-                      Path -> let same = ty2 = ty1 in
+                      Path -> let same = same_func(ty1, ty2) in
                       (match same with
                         true -> (symbol_table'', (ty1, SBinop((ty1, e1'), op, (ty2,
                         e2'))))
@@ -169,32 +140,34 @@ let check (stmts, functions) =
       | (_, ExprAssign) -> raise (Failure "expression assignment needs a bind")
       | (Bind _, _) -> raise (Failure "bind needs an expression assignment")
       | (_, Add) | (_, Mult) ->
-                    let same = ty2 = ty1 in
+                    let same = same_func(ty1, ty2) in
                     (match ty1 with
-                      Int | Float | Exec when same -> (symbol_table'', (ty1, SBinop((ty1, e1'), op,
+                      Int | Float when same -> (symbol_table'', (ty1, SBinop((ty1, e1'), op,
+                      (ty2, e2'))))
+                      | Exec | ComplexExec when same -> (symbol_table'', (ComplexExec, SBinop((ty1, e1'), op,
                       (ty2, e2'))))
                     | _ -> raise (Failure ("+ and * take two integers,
                     floats, or executables")))
       | (_, Sub) | (_, Div) ->
-                    let same = ty2 = ty1 in
+                    let same = same_func (ty1, ty2) in
                     (match ty1 with
                       Int | Float when same -> (symbol_table'', (ty1, SBinop((ty1, e1'), op,
                       (ty2, e2'))))
                     | _ -> raise (Failure ("Operator expected int or float")))
       | (_, Less) | (_, Leq) | (_, Greater) | (_, Geq) ->
-                    let same = ty2 = ty1 in
+                    let same = same_func (ty1, ty2) in
                     (match ty1 with
                       Int | Float when same -> (symbol_table'', (Bool, SBinop((ty1, e1'), op,
                       (ty2, e2'))))
                     | _ -> raise (Failure ("Operator expected int or float")))
       | (_, And) | (_, Or) ->
-                    let same = ty1 = ty2 in
+                    let same = same_func (ty1, ty2) in
                     (match ty1 with
                       Bool when same  -> (symbol_table'', (Bool, SBinop((ty1, e1'), op,
                       (ty2, e2'))))
                     | _ -> raise (Failure ("Boolean operators must take two booleans")))
       | (_, Equal) | (_, Neq) ->
-                    let same = ty2 = ty1 in
+                    let same = same_func (ty1, ty2) in
                     (match same with
                     true -> (symbol_table'', (Bool, SBinop((ty1, e1'), op,
                               (ty2, e2'))))
@@ -210,9 +183,9 @@ let check (stmts, functions) =
                         | false -> raise (Failure ("lists are monomorphic")))
                     | _ -> raise (Failure ("Cons takes a list and primitive type")))
       | (_, Pipe) ->
-                    let same = ty2 = ty1 in
+                    let same = same_func (ty1, ty2) in
                     (match ty1 with
-                      Exec when same -> (symbol_table'', (ty1, SBinop((ty1, e1'), op,
+                      ComplexExec | Exec when same -> (symbol_table'', (ComplexExec, SBinop((ty1, e1'), op,
                       (ty2, e2'))))
                     | _ -> raise (Failure ("Pipe expects two executables")))))
   | PreUnop(op, e)    ->
@@ -321,7 +294,7 @@ let check (stmts, functions) =
               let checked_sl = (check_stmt_list temp sl)
               in
               SBlock(checked_sl) :: (check_stmt_list curr_symbol_table' ss) (* Flatten blocks *)
-              | s :: ss         -> 
+              | s :: ss         ->
                 let checked_first = (check_stmt curr_symbol_table' s) in
                 (snd checked_first) :: (check_stmt_list (fst checked_first) ss)
             | []              -> [])
@@ -379,7 +352,7 @@ let check (stmts, functions) =
                 let checked_sl = (check_stmt_list temp sl)
                 in
                 SBlock(checked_sl) :: (check_stmt_list curr_symbol_table' ss) (* Flatten blocks *)
-              | s :: ss         -> 
+              | s :: ss         ->
                 let checked_first = (check_stmt_wrap curr_symbol_table' s) in
                 (snd checked_first) :: (check_stmt_list (fst checked_first) ss)
               | []              -> [])

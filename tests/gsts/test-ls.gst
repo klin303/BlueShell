@@ -17,6 +17,7 @@ sast.ml
 scanner.mll
 semant.ml
 sp-tests
+temp
 test-arith1.exe
 test-arith1.llvm
 test-arith1.llvm.s
@@ -63,4 +64,4 @@ test-for1.exe
 test-for1.llvm
 test-for1.llvm.s
 test-function1.exe
-test-f
+t
