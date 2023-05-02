@@ -1,0 +1,8 @@
+exec e = <"echo" withargs ["hello"]>;
+exec e1 = <"echo" withargs ["kenny"]>;
+exec e2 = <"echo" withargs ["world"]>;
+exec e4 = e * e1 * e2;
+
+string s = ./e4;
+./<"echo" withargs ["______________"]>;
+./<"echo" withargs [s]>;

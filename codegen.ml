@@ -184,28 +184,26 @@ let translate (stmts, functions) =
       in let (curr_symbol_table'', new_function_decls', builder, e2') = expr curr_symbol_table' new_function_decls builder func_llvalue e2 in
       (match op with
         ExprAssign ->
-          let (new_symbol_table, new_function_decls'', builder, ptr) = expr curr_symbol_table new_function_decls' builder func_llvalue e1
-          in let (_, _, builder, e2') = expr curr_symbol_table new_function_decls'' builder func_llvalue e2 in
           let e2' = (match (snd e1) with
             (* Special cases for index and path because those need to dereference the value being assigned to them *)
             SIndex _ -> L.build_load e2' "true_value" builder
             | SPreUnop (Path, _ ) -> L.build_load e2' "true_value" builder
             | _ -> e2')
           in
-          let _ = L.build_store e2' ptr builder in
-          let new_function_decls''' =
+          let _ = L.build_store e2' e1' builder in
+          let new_function_decls'' =
           (* If it's a function variable, update the function_decls *)
           (match (fst e2) with
               Function _ -> (match (snd e2) with
                               SId s1 -> (match (snd e1) with
                                 SBind (ty, n) ->
-                                let mapping = StringMap.find s1 new_function_decls''
-                                          in StringMap.add n mapping new_function_decls''
+                                let mapping = StringMap.find s1 new_function_decls'
+                                          in StringMap.add n mapping new_function_decls'
                                   | _  -> raise (Failure "Only binds can be assigned"))
                               | _ -> raise (Failure "Only ids can be assigned"))
-              | _ -> new_function_decls'')
+              | _ -> new_function_decls')
           in
-          (new_symbol_table, new_function_decls''', builder, e2')
+          (curr_symbol_table'', new_function_decls'', builder, e2')
         (* For operations, need to dereference both sides and store the result back to the memory location *)
         | Add -> (match t with
           Float ->
@@ -258,7 +256,19 @@ let translate (stmts, functions) =
             let new_int = L.build_mul (L.build_load e1' "left side of mult" builder) (L.build_load e2' "right side of mult" builder) "tmp" builder in
             let _ = L.build_store new_int int_mem builder in
             (curr_symbol_table'', function_decls, builder, int_mem)
-          | Exec -> raise (Failure "exec mul not implemented yet")
+          | Exec | ComplexExec ->
+            let complex_exec_space = L.build_malloc complex_exec_t "complex exec struct" builder in
+            let bool_ptr = L.build_struct_gep complex_exec_space 0 "complex bool" builder in
+            let exec1_ptr = L.build_struct_gep complex_exec_space 1 "complex e1" builder in
+            let exec2_ptr = L.build_struct_gep complex_exec_space 2 "complex e2" builder in
+            let op_ptr = L.build_struct_gep complex_exec_space 3 "complex op" builder in
+            let _ = L.build_store (L.const_int i1_t 0) bool_ptr builder in
+            let casted_e1 = L.build_pointercast e1' (L.pointer_type i8_t) "casted_e1" builder in
+            let _ = L.build_store casted_e1 exec1_ptr builder in
+            let casted_e2 = L.build_pointercast e2' (L.pointer_type i8_t) "casted_e2" builder in
+            let _ = L.build_store casted_e2 exec2_ptr builder in
+            let _ = L.build_store (L.const_int i32_t 1) op_ptr builder in
+            (curr_symbol_table'', function_decls, builder, complex_exec_space)
           | _ -> raise (Failure "semant should have caught mul with invalid types")
         )
         | Div -> (match t with
@@ -408,6 +418,19 @@ let translate (stmts, functions) =
               let _ = L.build_store casted_ty casted_ty_ptr builder in
               (* put value of element into the allocated space *)
               (curr_symbol_table, function_decls, builder, struct_space ))
+        | Pipe ->
+            let complex_exec_space = L.build_malloc complex_exec_t "complex exec struct" builder in
+            let bool_ptr = L.build_struct_gep complex_exec_space 0 "complex bool" builder in
+            let exec1_ptr = L.build_struct_gep complex_exec_space 1 "complex e1" builder in
+            let exec2_ptr = L.build_struct_gep complex_exec_space 2 "complex e2" builder in
+            let op_ptr = L.build_struct_gep complex_exec_space 3 "complex op" builder in
+            let _ = L.build_store (L.const_int i1_t 0) bool_ptr builder in
+            let casted_e1 = L.build_pointercast e1' (L.pointer_type i8_t) "casted_e1" builder in
+            let _ = L.build_store casted_e1 exec1_ptr builder in
+            let casted_e2 = L.build_pointercast e2' (L.pointer_type i8_t) "casted_e2" builder in
+            let _ = L.build_store casted_e2 exec2_ptr builder in
+            let _ = L.build_store (L.const_int i32_t 2) op_ptr builder in
+            (curr_symbol_table'', function_decls, builder, complex_exec_space)
         | _ -> raise (Failure "not yet implemented other binops")
     )
     | SPreUnop(op, e) -> (match op with

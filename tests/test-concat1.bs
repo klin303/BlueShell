@@ -1,8 +1,15 @@
 exec e = <"echo" withargs ["hello"]>;
-exec e1 = <"echo" withargs [" "]>;
+exec e1 = <"echo" withargs ["kenny"]>;
 exec e2 = <"echo" withargs ["world"]>;
-exec e5 = e + e2;
+/*exec e5 = e + e2;
+./e5;
 string s = ./e5;
-./<"echo" withargs [s]>;
-//exec e4 = e + e1 + e2;
-//./e4;
+./<"echo" withargs [s]>; */
+
+
+
+exec e4 = e + e1 + e2;
+string s;
+s = ./e4;
+//./<"echo" withargs ["______________"]>;
+//./<"echo" withargs [s]>;

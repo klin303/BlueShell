@@ -17,7 +17,7 @@ struct simple_exec {
 };
 
 struct complex_exec {
-    int is_complex;
+    int is_simple; // 1 means simple, 0 means complex
     void *e1;
     void *e2;
     int op;
@@ -31,31 +31,31 @@ enum Opcode { CONCAT = 0, SEQ = 1, PIPE = 2};
 
 
 char* recurse_exec(struct complex_exec *e) {
-
-    if (e->is_complex == 0) {
+    if (e->is_simple == 1) {
       struct simple_exec* simple = (struct simple_exec*)(e->e1);
       char *simple_path = *(char **)simple->path;
-      fprintf(stderr, "path %s", simple_path);
 
       struct list *orig_args = simple->args;
       return execvp_helper(simple_path, orig_args);
     }
-    
+    else {
+      struct complex_exec* complex1 = (struct complex_exec*)(e->e1);
+      struct complex_exec* complex2 = (struct complex_exec*)(e->e2);
+      char *result1 = recurse_exec(complex1);
+      char *result2 = recurse_exec(complex2);
+      switch (e->op) {
+        case CONCAT:
+          return strcat(result1, result2);
 
-    switch (e->op) {
-      case CONCAT:
-        fprintf(stderr, "in concat\n");
-        break;
-
-      case SEQ:
-        fprintf(stderr, "in seq\n");
-        break;
-
-      case PIPE:
-        fprintf(stderr, "in pipe\n");
-        break;
+        case SEQ:
+          return result2;
+          
+        case PIPE:
+          fprintf(stderr, "in pipe\n");
+          break;
+      }
     }
-    return "testing";
+    return NULL;
 }
 
 
@@ -64,24 +64,18 @@ Purpose: Forks and calls execvp on the path and arguments, interfacing with the 
 Arguments: char* representing path, char* array representing arguments
 */
 char* execvp_helper(char *path, struct list *orig_args) {
-        assert(path);
-        assert(orig_args);
         int i = 0;
         struct list *args_copy = orig_args;
 
         char* str;
         char** temp;
 
-
         // count the number of args
         while (args_copy != NULL) {
             char **temp1 = *(char***)(args_copy->val);
-            // fprintf(stderr, "ARGSCOPY %d: %s\n", i, *temp1);
             i += 1;
             args_copy = args_copy->next;
-            // fprintf(stderr, "%s", *(char **)(args_copy));
         }
-        // fprintf(stderr, "i is: %d\n", i);
 
         // move args from linked list into array for execvp to use
         char **args = malloc(sizeof(char*) * (i + 2));
@@ -123,23 +117,17 @@ char* execvp_helper(char *path, struct list *orig_args) {
         args[i + 1] = NULL;
 
         // fork and run the executable
-
-        // for (int x = 0; x < i + 2; x++) {
-        //   fprintf(stderr, "ARGS %d: %s\n", x, args[x]);
-        // }
         int fds[2];
         pipe(fds);
 
         int rc = fork();
         int status = 0;
         if (rc == 0) {
-            // close(1);
             close(fds[0]);
             dup2(fds[1], 1);
             close(fds[1]);
             int err = execvp(path, args);
             exit(1);
-            // printf("%d", err);
         }
         int wpid = wait(&status);
         // printf("exit code: %d\n", WEXITSTATUS(status));
