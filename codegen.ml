@@ -55,10 +55,6 @@ let translate (stmts, functions) =
       L.var_arg_function_type (L.pointer_type i8_t) [| L.pointer_type i8_t;  L.pointer_type list_t |] in
   let execvp_func : L.llvalue =
      L.declare_function "execvp_helper" execvp_t the_module in
-  let strcat_t : L.lltype =
-      L.var_arg_function_type (L.pointer_type i8_t) [| L.pointer_type i8_t;  L.pointer_type i8_t |] in
-  let strcat_func : L.llvalue =
-     L.declare_function "strcat" strcat_t the_module in
   let recurse_exec_t : L.lltype =
       L.var_arg_function_type (L.pointer_type i8_t) [| L.pointer_type complex_exec_t |] in
   let recurse_exec_func : L.llvalue =
@@ -67,8 +63,7 @@ let translate (stmts, functions) =
   (* Helper function, since the llvalue being returned from expr is the 4th elem of a tuple *)
   let fourth x =
     (match x with
-    (_, _, _, y) -> y
-    | _ -> raise (Failure "not three!"))
+    (_, _, _, y) -> y)
   in
 
   (* Make a fake "main" that contains our toplevel statements *)
@@ -417,7 +412,8 @@ let translate (stmts, functions) =
               let _ = L.build_store casted_val casted_val_ptr builder in
               let _ = L.build_store casted_ty casted_ty_ptr builder in
               (* put value of element into the allocated space *)
-              (curr_symbol_table, function_decls, builder, struct_space ))
+              (curr_symbol_table, function_decls, builder, struct_space )
+            | _ -> raise (Failure "incorrect type in cons"))
         | Pipe ->
             let complex_exec_space = L.build_malloc complex_exec_t "complex exec struct" builder in
             let bool_ptr = L.build_struct_gep complex_exec_space 0 "complex bool" builder in
@@ -431,7 +427,6 @@ let translate (stmts, functions) =
             let _ = L.build_store casted_e2 exec2_ptr builder in
             let _ = L.build_store (L.const_int i32_t 2) op_ptr builder in
             (curr_symbol_table'', function_decls, builder, complex_exec_space)
-        | _ -> raise (Failure "not yet implemented other binops")
     )
     | SPreUnop(op, e) -> (match op with
         Run ->
@@ -445,7 +440,6 @@ let translate (stmts, functions) =
 
           (* Connect then block for simple executables *)
           let merge_bb = L.append_block context "merge" func_llvalue in
-          let branch_instr = L.build_br merge_bb in
           let then_bb = L.append_block context "then" func_llvalue in
           let then_builder = L.builder_at_end context then_bb in
 
@@ -462,7 +456,7 @@ let translate (stmts, functions) =
 
           (* Execvp will convert from our list representation to the array needed *)
           let return_str = L.build_call execvp_func [| path ; args |] "execvp" then_builder in
-          let return_str_store = L.build_store return_str return_str_ptr then_builder in
+          let _ = L.build_store return_str return_str_ptr then_builder in
           let _ = L.build_br merge_bb then_builder in
           (* End of then block *)
 
@@ -471,7 +465,7 @@ let translate (stmts, functions) =
           let else_builder = L.builder_at_end context else_bb in
 
           let return_str = L.build_call recurse_exec_func [| exec |] "recurse_exec" else_builder in
-          let return_str_store = L.build_store return_str return_str_ptr else_builder in
+          let _ = L.build_store return_str return_str_ptr else_builder in
 
           (* After switch statement, finish getting the resulting string *)
           let _ = L.build_br merge_bb else_builder in
@@ -516,6 +510,43 @@ let translate (stmts, functions) =
           let dbl_path_ptr = L.build_struct_gep simple_exec 0 "dbl_path_ptr" builder in
           let path_ptr = L.build_load dbl_path_ptr "path_ptr" builder in
           (curr_symbol_table', function_decls', builder, path_ptr)
+      | Length ->
+          (* Get the list pointer and the index value *)
+          let (curr_symbol_table', new_function_decls, builder, e1') = expr curr_symbol_table function_decls builder func_llvalue e in
+
+          let e1_pointer = L.build_malloc (L.pointer_type list_t) "e1 pointer" builder in
+          let _ = L.build_store e1' e1_pointer builder in
+
+          (* Basically have a while loop that goes until counter == index *)
+          let counter_ptr = L.build_malloc i32_t "counter_ptr" builder in
+          let _ = L.build_store (L.const_int i32_t 0) counter_ptr builder in
+          let pred_bb = L.append_block context "length" func_llvalue in
+          let _ = L.build_br pred_bb builder in
+          let pred_builder = L.builder_at_end context pred_bb in
+
+          let bool_mem = L.build_malloc i1_t "bool_mem" pred_builder in
+          let _ = L.build_store (L.build_is_not_null (L.build_load e1_pointer "" pred_builder) "" pred_builder) bool_mem pred_builder in
+
+          (* In body of this loop, traverse to next node *)
+          let index_body_bb = L.append_block context "index_body" func_llvalue in
+          let index_body_builder = L.builder_at_end context index_body_bb in
+          let counter = L.build_add (L.build_load counter_ptr "counter" index_body_builder) (L.const_int i32_t 1) "increment counter" index_body_builder in
+          let _ = L.build_store counter counter_ptr index_body_builder in
+          let next_ptr_ptr = L.build_struct_gep (L.build_load e1_pointer "get struct" index_body_builder) 1 "next_struct_ptr" index_body_builder in
+          let temp = L.build_load next_ptr_ptr "e1' in while loop" index_body_builder in
+          let temp' = L.build_pointercast temp ((L.pointer_type list_t)) "temp'" index_body_builder in
+          let _ = L.build_store temp' e1_pointer index_body_builder in
+          let casted_ptr_ptr = L.build_pointercast temp (L.pointer_type list_t) "casted_ptr_ptr" index_body_builder in
+
+          let _ = L.build_store casted_ptr_ptr e1_pointer index_body_builder in
+          let _ = L.build_br pred_bb index_body_builder in
+
+          (* Once loop is done, return counter *)
+          let merge_bb = L.append_block context "merge" func_llvalue in
+          let _ = L.build_cond_br (L.build_load bool_mem "bool_mem" pred_builder) index_body_bb merge_bb pred_builder in
+          let merge_body_builder = L.builder_at_end context merge_bb in
+
+          (curr_symbol_table', new_function_decls, merge_body_builder, counter_ptr)
       | _   -> raise (Failure "preuop not implemented"))
     | SList l -> (* Returns a pointer to the first node in the list *)
       (match l with
@@ -592,7 +623,6 @@ let translate (stmts, functions) =
         (curr_symbol_table, function_decls, builder, L.build_call fval (Array.of_list llargs) result builder)
         | _ -> raise(Failure "Calling a non function")
   in
-  let curr_symbol_table = { variables = StringMap.empty ; parent = None } in
   let rec stmt ((curr_symbol_table : symbol_table), (function_decls : (L.llvalue * sfunc_decl) StringMap.t), builder, (fdecl_option: sfunc_decl option), (func_llvalue : L.llvalue)) (statement : sstmt) =
     match statement with
       SReturn e -> (match fdecl_option with
@@ -618,7 +648,6 @@ let translate (stmts, functions) =
       (* Branch and return new builder to continue building from *)
       let (curr_symbol_table', new_function_decls, builder, bool_val) = expr curr_symbol_table function_decls builder func_llvalue predicate in
       let merge_bb = L.append_block context "merge" func_llvalue in
-      let branch_instr = L.build_br merge_bb in
       let then_bb = L.append_block context "then" func_llvalue in
       let (_, _, then_builder, _, _) = stmt (curr_symbol_table', new_function_decls, (L.builder_at_end context then_bb), fdecl_option, func_llvalue) then_stmt in
       let _ = L.build_br merge_bb then_builder in

@@ -1,0 +1,5 @@
+list of int l1 = [1, 2, 3];
+list of int l2 = [];
+
+./<"echo" withargs [len l1]>;
+./<"echo" withargs [len l2]>;

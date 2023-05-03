@@ -1,6 +1,7 @@
-exec e = <"echo" withargs ["hello", "\n", "world", "\n", "mj"]>;
+exec e = <"echo" withargs ["hello", "\n", "world", "\n", "mjhello"]>;
 exec e2 = <"grep" withargs ["-a", "mj"]>;
 exec e3 = e | e2;
 
 string s = ./e3;
+./<"echo" withargs ["______________"]>;
 ./<"echo" withargs [s]>;

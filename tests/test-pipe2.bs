@@ -1,0 +1,16 @@
+exec e = <"cat" withargs ["Makefile"]>;
+exec e2 = <"grep" withargs ["-a", "zip"]>;
+exec e3 = <"grep" withargs ["-a", "tests"]>;
+exec e4 = e | e2 | e3;
+
+string s = ./e4;
+
+./<"echo" withargs [" ______________"]>;
+./<"echo" withargs [s]>;
+
+./<"echo" withargs ["______________"]>;
+exec e5 = e4 | e3;
+
+string s2 = ./e5;
+./<"echo" withargs ["______________"]>;
+./<"echo" withargs [s2]>;

@@ -1,0 +1,34 @@
+/*string execute_exec(exec e) {
+    return ./e;
+}
+
+exec create_exec(string executable) {
+    return <executable>;
+}
+
+
+list of string map_exec_to_string(function (exec -> string) func,list of exec execs) {
+    int l = len execs;
+    list of string new_execs = [];
+    for (int i = 0; i < len; i++) {
+        new_execs = func(execs[i]) :: new_execs;
+    }
+} */
+
+exec create_compile_execs(string s) {
+    return <"./compile.sh" withargs [s]>;
+}
+
+list of exec map_string_to_exec(function (string -> exec) func, list of string strings) {
+    int l = len strings;
+    list of exec new_execs = [];
+    for (int i = 0; i < l; i = i + 1) {
+        new_execs = func(strings[i]) :: new_execs;
+    }
+    return new_execs;
+}
+
+list of string execs_to_compile = ["tests/test-echo1.bs","tests/test-pipe1.bs", "tests/test-concatseq1.bs"];
+
+list of exec compile_execs = map_string_to_exec(create_compile_execs, execs_to_compile);
+

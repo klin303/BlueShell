@@ -1,0 +1,46 @@
+exec e1 = <"cat" withargs ["test_file.txt"]>;
+exec e2 = <"cat" withargs ["test_file2.txt"]>;
+
+exec e3 = <"grep" withargs ["-a", "zip"]>;
+exec e4 = <"grep" withargs ["-a", "BlueShell"]>;
+
+exec e5 = (e1 | e3) + (e2 | e4);
+string s = ./e5;
+
+./<"echo" withargs ["TEST 1 OUTPUT: ZIPS FROM FIRST FILE AND BLUESHELLS FROM SECOND"]>;
+./<"echo" withargs [s]>;
+
+./<"echo" withargs ["______________"]>;
+exec e5 = (e1 | e3) * (e2 | e4);
+string s = ./e5;
+
+./<"echo" withargs ["TEST 2 OUTPUT: BLUESHELLS FROM SECOND"]>;
+./<"echo" withargs [s]>;
+
+./<"echo" withargs ["______________"]>;
+exec e5 = (e1 + e2) | e3;
+string s = ./e5;
+
+./<"echo" withargs ["TEST 3 OUTPUT: ZIPS FROM BOTH"]>;
+./<"echo" withargs [s]>;
+
+./<"echo" withargs ["______________"]>;
+exec e5 = (e1 * e2) | e4;
+string s = ./e5;
+
+./<"echo" withargs ["TEST 4 OUTPUT: BLUESHELLS FROM SECOND"]>;
+./<"echo" withargs [s]>;
+
+./<"echo" withargs ["______________"]>;
+exec e6 = <"echo" withargs ["hello world"]>;
+exec e5 = (e2 * e1) | (e3 + (e6 + e6)) | <"grep" withargs ["-a", "hello"]> ;
+string s = ./e5;
+
+./<"echo" withargs ["TEST 5 OUTPUT: ZIPS FROM FIRST PLUS HELLO WORLDS"]>;
+./<"echo" withargs [s]>;
+
+exec e5 = (e2 * e1) | (e3 + (e6 + e6) | <"grep" withargs ["-a", "hello"]>);
+string s = ./e5;
+
+./<"echo" withargs ["TEST 6 OUTPUT: GETS OUTPUT OF FIRST FILE, GREPS FOR ZIP WHICH GETS CONCATENATED WITH HELLO WORLD AND WE GREP FOR HELLO WORLD"]>;
+./<"echo" withargs [s]>;
