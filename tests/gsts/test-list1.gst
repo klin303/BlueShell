@@ -104,11 +104,11 @@ test-stringfunc1.bs
 
 FAILS 
 
-fail-list1.bs
-    Creates a list of strings but attempts to store an int element.
-
 fail-arith1.bs
     Detects mismatched types in an arithmetic operation.
+
+fail-list1.bs
+    Creates a list of strings but attempts to store an int element.
 
 fail-exec1.bs
     Detects a non-executable type used with run.
@@ -259,11 +259,11 @@ test-stringfunc1.bs
 
 FAILS 
 
-fail-list1.bs
-    Creates a list of strings but attempts to store an int element.
-
 fail-arith1.bs
     Detects mismatched types in an arithmetic operation.
+
+fail-list1.bs
+    Creates a list of strings but attempts to store an int element.
 
 fail-exec1.bs
     Detects a non-executable type used with run.

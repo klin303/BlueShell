@@ -168,10 +168,10 @@ let check (stmts, functions) =
                     | _ -> raise (Failure ("Boolean operators must take two booleans")))
       | (_, Equal) | (_, Neq) ->
                     let same = same_func (ty1, ty2) in
-                    (match same with
-                    true -> (symbol_table'', (Bool, SBinop((ty1, e1'), op,
+                    (match ty1 with
+                      Bool | Float | Int when same -> (symbol_table'', (Bool, SBinop((ty1, e1'), op,
                               (ty2, e2'))))
-                    | false -> raise (Failure ("types of binops must match")))
+                    | _ -> raise (Failure ("operator expected bool, int, or float")))
       | (_, Cons) ->
                     (match ty2 with
                       EmptyList -> (symbol_table'', (List_type ty1, SBinop((ty1, e1'), op,
@@ -200,7 +200,7 @@ let check (stmts, functions) =
               | _ -> raise (Failure ("Run takes type executable")))
     | Neg ->
               (match ty1 with
-                Int | Float | List_type _ -> (curr_symbol_table, (ty1, SPreUnop (Neg, (ty1, e1)))) (* what do we put here*)
+                Int | Float -> (curr_symbol_table, (ty1, SPreUnop (Neg, (ty1, e1)))) (* what do we put here*)
               | _ -> raise (Failure ("Negation takes an interger, float, or list")))
     | Length ->
               (match ty1 with

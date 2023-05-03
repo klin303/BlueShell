@@ -159,7 +159,7 @@ let translate (stmts, functions) =
       let _ = L.build_br pred_bb index_body_builder in
 
       (* Once loop is done, dereference ptr to get element *)
-      let merge_bb = L.append_block context "merge" func_llvalue in
+      let merge_bb = L.append_block context "index_merge" func_llvalue in
       let _ = L.build_cond_br bool_val index_body_bb merge_bb pred_builder in
       let merge_body_builder = L.builder_at_end context merge_bb in
       let elem_ptr_ptr = L.build_struct_gep (L.build_load e1_pointer "get struct" merge_body_builder) 0 "elem_ptr_ptr" merge_body_builder in
@@ -412,7 +412,7 @@ let translate (stmts, functions) =
               let _ = L.build_store casted_val casted_val_ptr builder in
               let _ = L.build_store casted_ty casted_ty_ptr builder in
               (* put value of element into the allocated space *)
-              (curr_symbol_table, function_decls, builder, struct_space )
+              (curr_symbol_table, function_decls, builder, struct_space)
             | _ -> raise (Failure "incorrect type in cons"))
         | Pipe ->
             let complex_exec_space = L.build_malloc complex_exec_t "complex exec struct" builder in
@@ -439,7 +439,7 @@ let translate (stmts, functions) =
           let return_str_ptr = L.build_malloc (L.pointer_type i8_t) "return_str_ptr" builder in
 
           (* Connect then block for simple executables *)
-          let merge_bb = L.append_block context "merge" func_llvalue in
+          let merge_bb = L.append_block context "run merge" func_llvalue in
           let then_bb = L.append_block context "then" func_llvalue in
           let then_builder = L.builder_at_end context then_bb in
 
@@ -542,7 +542,7 @@ let translate (stmts, functions) =
           let _ = L.build_br pred_bb index_body_builder in
 
           (* Once loop is done, return counter *)
-          let merge_bb = L.append_block context "merge" func_llvalue in
+          let merge_bb = L.append_block context "length merge" func_llvalue in
           let _ = L.build_cond_br (L.build_load bool_mem "bool_mem" pred_builder) index_body_bb merge_bb pred_builder in
           let merge_body_builder = L.builder_at_end context merge_bb in
 
@@ -616,7 +616,12 @@ let translate (stmts, functions) =
 
         (* All functions are held as pointers to the address of the function, so dereference *)
         let fval = L.build_load fptr "fval" builder in
-        let llargs = List.map fourth (List.rev (List.map (expr curr_symbol_table function_decls builder func_llvalue) (List.rev args))) in
+        let evaluate_args = (List.map (expr curr_symbol_table function_decls builder func_llvalue) (List.rev args)) in
+        let (curr_symbol_table, function_decls, builder, _) = (match evaluate_args with
+          [] -> (curr_symbol_table, function_decls, builder, (L.const_null i8_t))
+          | elem :: elems -> elem)
+        in
+        let llargs = List.map fourth (List.rev evaluate_args) in
         let result = (match fdecl.styp with
                       A.Void -> ""
                     | _ -> f ^ "_result") in
@@ -632,7 +637,8 @@ let translate (stmts, functions) =
             Void -> let _ = L.build_ret_void builder in
               (curr_symbol_table, function_decls, builder, fdecl_option, func_llvalue)
             | _ -> let ret_mem = L.build_malloc (ltype_of_typ fdecl.styp) "return malloc" builder in
-                    let ret = L.build_load (fourth (expr curr_symbol_table function_decls builder func_llvalue e)) "return load" builder in
+                    let (curr_symbol_table, function_decls, builder, evaluated_expr) = expr curr_symbol_table function_decls builder func_llvalue e in
+                    let ret = L.build_load evaluated_expr "return load" builder in
                     let _ = L.build_store ret ret_mem builder in
                     let _ = L.build_ret ret_mem builder in
             (curr_symbol_table, function_decls, builder, fdecl_option, func_llvalue))
@@ -647,7 +653,7 @@ let translate (stmts, functions) =
     | SIf (predicate, then_stmt, else_stmt) ->
       (* Branch and return new builder to continue building from *)
       let (curr_symbol_table', new_function_decls, builder, bool_val) = expr curr_symbol_table function_decls builder func_llvalue predicate in
-      let merge_bb = L.append_block context "merge" func_llvalue in
+      let merge_bb = L.append_block context "if merge" func_llvalue in
       let then_bb = L.append_block context "then" func_llvalue in
       let (_, _, then_builder, _, _) = stmt (curr_symbol_table', new_function_decls, (L.builder_at_end context then_bb), fdecl_option, func_llvalue) then_stmt in
       let _ = L.build_br merge_bb then_builder in
@@ -667,7 +673,7 @@ let translate (stmts, functions) =
       let pred_builder = L.builder_at_end context pred_bb in
       let (curr_symbol_table', new_function_decls, builder, bool_val) = expr curr_symbol_table function_decls pred_builder func_llvalue predicate in
       let dereferenced_bool = L.build_load bool_val "bool" pred_builder in
-      let merge_bb = L.append_block context "merge" func_llvalue in
+      let merge_bb = L.append_block context "while merge" func_llvalue in
       let _ = L.build_cond_br dereferenced_bool body_bb merge_bb pred_builder in
       (curr_symbol_table, new_function_decls, (L.builder_at_end context merge_bb), fdecl_option, func_llvalue)
     | SFor (e1, e2, e3, body) ->
@@ -699,7 +705,7 @@ let translate (stmts, functions) =
       Void -> void_t
       | _ -> (L.pointer_type (ltype_of_typ fdecl.styp))) in
     let ftype = L.function_type return_type formal_types in
-    let variable = L.build_alloca (L.pointer_type ftype) "function def" builder in
+    let variable = L.build_malloc (L.pointer_type ftype) "function def" builder in
     let _ = L.build_store fdef variable builder in
     (StringMap.add name variable m, builder)
   in
@@ -720,7 +726,7 @@ let translate (stmts, functions) =
     let add_formal ((curr_symbol_table : symbol_table), function_decls) ((t : A.typ), n) p =
       let new_map =
           let old_map = curr_symbol_table.variables in
-          let variable = L.build_alloca (L.pointer_type (ltype_of_typ t)) n func_builder in
+          let variable = L.build_malloc (L.pointer_type (ltype_of_typ t)) n func_builder in
           let _ = L.build_store p variable func_builder in
           StringMap.add n variable old_map
       in
