@@ -85,15 +85,15 @@ let translate (stmts, functions) =
     (* All literals are allocated on the stack, with pointers to them being returned *)
     match e with
       SLiteral x -> let int_val = L.const_int i32_t x in
-        let int_mem = L.build_alloca i32_t "int_mem" builder in
+        let int_mem = L.build_malloc i32_t "int_mem" builder in
         let _ = L.build_store int_val int_mem builder in
         (curr_symbol_table, function_decls, builder, int_mem)
     | SFliteral l -> let float_val = L.const_float_of_string float_t l in
-        let float_mem = L.build_alloca float_t "float_mem" builder in
+        let float_mem = L.build_malloc float_t "float_mem" builder in
         let _ = L.build_store float_val float_mem builder in
         (curr_symbol_table, function_decls, builder, float_mem)
     | SBoolLit b -> let bool_val = L.const_int i1_t (if b then 1 else 0) in
-        let bool_mem = L.build_alloca i1_t "bool_mem" builder in
+        let bool_mem = L.build_malloc i1_t "bool_mem" builder in
         let _ = L.build_store bool_val bool_mem builder in
         (curr_symbol_table, function_decls, builder, bool_mem)
     | SId s ->
@@ -102,12 +102,12 @@ let translate (stmts, functions) =
         (curr_symbol_table, function_decls, builder, L.build_load address s builder)
     | SChar c ->
       let char_ptr = L.build_global_stringptr c "char" builder in
-      let dbl_char_ptr = L.build_alloca string_t "double_char_ptr" builder in
+      let dbl_char_ptr = L.build_malloc string_t "double_char_ptr" builder in
       let _ = L.build_store char_ptr dbl_char_ptr builder in
       (curr_symbol_table, function_decls, builder, dbl_char_ptr)
     | SString s ->
       let string_ptr = L.build_global_stringptr s "string" builder in
-      let dbl_string_ptr = L.build_alloca string_t "double_string_ptr" builder in
+      let dbl_string_ptr = L.build_malloc string_t "double_string_ptr" builder in
       let _ = L.build_store string_ptr dbl_string_ptr builder in
       (curr_symbol_table, function_decls, builder, dbl_string_ptr)
     | SNoexpr -> (curr_symbol_table, function_decls, builder, L.const_int i32_t 0)
@@ -175,8 +175,8 @@ let translate (stmts, functions) =
       (curr_symbol_table'', new_function_decls', merge_body_builder, elem_to_return)
     | SBinop (e1, op, e2) ->
       let (t, _) = e1
-      in let (curr_symbol_table', new_function_decls, builder, e1') = expr curr_symbol_table function_decls builder func_llvalue e1
-      in let (curr_symbol_table'', new_function_decls', builder, e2') = expr curr_symbol_table' new_function_decls builder func_llvalue e2 in
+      in let (curr_symbol_table', new_function_decls, builder, e2') = expr curr_symbol_table function_decls builder func_llvalue e2
+      in let (curr_symbol_table'', new_function_decls', builder, e1') = expr curr_symbol_table' new_function_decls builder func_llvalue e1 in
       (match op with
         ExprAssign ->
           let e2' = (match (snd e1) with
@@ -202,12 +202,12 @@ let translate (stmts, functions) =
         (* For operations, need to dereference both sides and store the result back to the memory location *)
         | Add -> (match t with
           Float ->
-            let float_mem = L.build_alloca float_t "int_mem" builder in
+            let float_mem = L.build_malloc float_t "int_mem" builder in
             let new_float = L.build_fadd (L.build_load e1' "left side of fadd" builder ) (L.build_load e2' "right side of fadd" builder) "tmp" builder in
             let _ = L.build_store new_float float_mem builder in
             (curr_symbol_table'', function_decls, builder, float_mem)
           | Int ->
-            let int_mem = L.build_alloca i32_t "int_mem" builder in
+            let int_mem = L.build_malloc i32_t "int_mem" builder in
             let new_int = L.build_add (L.build_load e1' "left side of add" builder) (L.build_load e2' "right side of add" builder) "tmp" builder in
             let _ = L.build_store new_int int_mem builder in
             (curr_symbol_table'', function_decls, builder, int_mem)
@@ -229,12 +229,12 @@ let translate (stmts, functions) =
         )
         | Sub -> (match t with
           Float ->
-            let float_mem = L.build_alloca float_t "int_mem" builder in
+            let float_mem = L.build_malloc float_t "int_mem" builder in
             let new_float = L.build_fsub (L.build_load e1' "left side of fsub" builder ) (L.build_load e2' "right side of fsub" builder) "tmp" builder in
             let _ = L.build_store new_float float_mem builder in
             (curr_symbol_table'', function_decls, builder, float_mem)
           | Int ->
-            let int_mem = L.build_alloca i32_t "int_mem" builder in
+            let int_mem = L.build_malloc i32_t "int_mem" builder in
             let new_int = L.build_sub (L.build_load e1' "left side of sub" builder) (L.build_load e2' "right side of sub" builder) "tmp" builder in
             let _ = L.build_store new_int int_mem builder in
             (curr_symbol_table'', function_decls, builder, int_mem)
@@ -242,12 +242,12 @@ let translate (stmts, functions) =
         )
         | Mult -> (match t with
           Float ->
-            let float_mem = L.build_alloca float_t "int_mem" builder in
+            let float_mem = L.build_malloc float_t "int_mem" builder in
             let new_float = L.build_fmul (L.build_load e1' "left side of fmult" builder ) (L.build_load e2' "right side of fmult" builder) "tmp" builder in
             let _ = L.build_store new_float float_mem builder in
             (curr_symbol_table'', function_decls, builder, float_mem)
           | Int ->
-            let int_mem = L.build_alloca i32_t "int_mem" builder in
+            let int_mem = L.build_malloc i32_t "int_mem" builder in
             let new_int = L.build_mul (L.build_load e1' "left side of mult" builder) (L.build_load e2' "right side of mult" builder) "tmp" builder in
             let _ = L.build_store new_int int_mem builder in
             (curr_symbol_table'', function_decls, builder, int_mem)
@@ -268,12 +268,12 @@ let translate (stmts, functions) =
         )
         | Div -> (match t with
           Float ->
-            let float_mem = L.build_alloca float_t "int_mem" builder in
+            let float_mem = L.build_malloc float_t "int_mem" builder in
             let new_float = L.build_fdiv (L.build_load e1' "left side of fdiv" builder ) (L.build_load e2' "right side of fdiv" builder) "tmp" builder in
             let _ = L.build_store new_float float_mem builder in
             (curr_symbol_table'', function_decls, builder, float_mem)
           | Int ->
-            let int_mem = L.build_alloca i32_t "int_mem" builder in
+            let int_mem = L.build_malloc i32_t "int_mem" builder in
             let new_int = L.build_sdiv (L.build_load e1' "left side of div" builder) (L.build_load e2' "right side of div" builder) "tmp" builder in
             let _ = L.build_store new_int int_mem builder in
             (curr_symbol_table'', function_decls, builder, int_mem)
@@ -281,12 +281,12 @@ let translate (stmts, functions) =
         )
         | Less -> (match t with
           Float ->
-            let bool_mem = L.build_alloca i1_t "int_mem" builder in
+            let bool_mem = L.build_malloc i1_t "int_mem" builder in
             let new_bool = L.build_fcmp L.Fcmp.Olt (L.build_load e1' "left side of flt" builder) (L.build_load e2' "right side of flt" builder) "tmp" builder in
             let _ = L.build_store new_bool bool_mem builder in
             (curr_symbol_table'', function_decls, builder, bool_mem)
           | Int ->
-            let bool_mem = L.build_alloca i1_t "bool_mem" builder in
+            let bool_mem = L.build_malloc i1_t "bool_mem" builder in
             let new_bool = L.build_icmp L.Icmp.Slt (L.build_load e1' "left side of lt" builder) (L.build_load e2' "right side of lt" builder) "tmp" builder in
             let _ = L.build_store new_bool bool_mem builder in
             (curr_symbol_table'', function_decls, builder, bool_mem)
@@ -294,12 +294,12 @@ let translate (stmts, functions) =
         )
         | Leq -> (match t with
           Float ->
-            let bool_mem = L.build_alloca i1_t "bool_mem" builder in
+            let bool_mem = L.build_malloc i1_t "bool_mem" builder in
             let new_bool = L.build_fcmp L.Fcmp.Ole (L.build_load e1' "left side of fleq" builder) (L.build_load e2' "right side of fle" builder) "tmp" builder in
             let _ = L.build_store new_bool bool_mem builder in
             (curr_symbol_table'', function_decls, builder, bool_mem)
           | Int ->
-            let bool_mem = L.build_alloca i1_t "bool_mem" builder in
+            let bool_mem = L.build_malloc i1_t "bool_mem" builder in
             let new_bool = L.build_icmp L.Icmp.Sle (L.build_load e1' "left side of leq" builder) (L.build_load e2' "right side of le" builder) "tmp" builder in
             let _ = L.build_store new_bool bool_mem builder in
             (curr_symbol_table'', function_decls, builder, bool_mem)
@@ -307,12 +307,12 @@ let translate (stmts, functions) =
         )
         | Greater -> (match t with
           Float ->
-            let bool_mem = L.build_alloca i1_t "bool_mem" builder in
+            let bool_mem = L.build_malloc i1_t "bool_mem" builder in
             let new_bool = L.build_fcmp L.Fcmp.Ogt (L.build_load e1' "left side of fgt" builder) (L.build_load e2' "right side of fgt" builder) "tmp" builder in
             let _ = L.build_store new_bool bool_mem builder in
             (curr_symbol_table'', function_decls, builder, bool_mem)
           | Int ->
-            let bool_mem = L.build_alloca i1_t "bool_mem" builder in
+            let bool_mem = L.build_malloc i1_t "bool_mem" builder in
             let new_bool = L.build_icmp L.Icmp.Sgt (L.build_load e1' "left side of gt" builder) (L.build_load e2' "right side of gt" builder) "tmp" builder in
             let _ = L.build_store new_bool bool_mem builder in
             (curr_symbol_table'', function_decls, builder, bool_mem)
@@ -320,12 +320,12 @@ let translate (stmts, functions) =
         )
         | Geq -> (match t with
           Float ->
-            let bool_mem = L.build_alloca i1_t "bool_mem" builder in
+            let bool_mem = L.build_malloc i1_t "bool_mem" builder in
             let new_bool = L.build_fcmp L.Fcmp.Oge (L.build_load e1' "left side of fgeq" builder) (L.build_load e2' "right side of fgeq" builder) "tmp" builder in
             let _ = L.build_store new_bool bool_mem builder in
             (curr_symbol_table'', function_decls, builder, bool_mem)
           | Int ->
-            let bool_mem = L.build_alloca i1_t "bool_mem" builder in
+            let bool_mem = L.build_malloc i1_t "bool_mem" builder in
             let new_bool = L.build_icmp L.Icmp.Sge (L.build_load e1' "left side of geq" builder) (L.build_load e2' "right side of geq" builder) "tmp" builder in
             let _ = L.build_store new_bool bool_mem builder in
             (curr_symbol_table'', function_decls, builder, bool_mem)
@@ -333,7 +333,7 @@ let translate (stmts, functions) =
         )
         | And -> (match t with
           Bool ->
-            let bool_mem = L.build_alloca i1_t "bool_mem" builder in
+            let bool_mem = L.build_malloc i1_t "bool_mem" builder in
             let new_bool = L.build_and (L.build_load e1' "left side of and" builder) (L.build_load e2' "right side of and" builder) "tmp" builder in
             let _ = L.build_store new_bool bool_mem builder in
             (curr_symbol_table'', function_decls, builder, bool_mem)
@@ -341,7 +341,7 @@ let translate (stmts, functions) =
         )
         | Or -> (match t with
           Bool ->
-            let bool_mem = L.build_alloca i1_t "bool_mem" builder in
+            let bool_mem = L.build_malloc i1_t "bool_mem" builder in
             let new_bool = L.build_or (L.build_load e1' "left side of or" builder) (L.build_load e2' "right side of or" builder) "tmp" builder in
             let _ = L.build_store new_bool bool_mem builder in
             (curr_symbol_table'', function_decls, builder, bool_mem)
@@ -349,12 +349,12 @@ let translate (stmts, functions) =
         )
         | Equal -> (match t with
            Float ->
-            let bool_mem = L.build_alloca i1_t "bool_mem" builder in
+            let bool_mem = L.build_malloc i1_t "bool_mem" builder in
             let new_bool = L.build_fcmp L.Fcmp.Oeq (L.build_load e1' "left side of feq" builder) (L.build_load e2' "right side of feq" builder) "tmp" builder in
             let _ = L.build_store new_bool bool_mem builder in
             (curr_symbol_table'', function_decls, builder, bool_mem)
           | Int ->
-            let bool_mem = L.build_alloca i1_t "bool_mem" builder in
+            let bool_mem = L.build_malloc i1_t "bool_mem" builder in
             let new_bool = L.build_icmp L.Icmp.Eq (L.build_load e1' "left side of eq" builder) (L.build_load e2' "right side of eq" builder) "tmp" builder in
             let _ = L.build_store new_bool bool_mem builder in
             (curr_symbol_table'', function_decls, builder, bool_mem)
@@ -362,12 +362,12 @@ let translate (stmts, functions) =
         )
         | Neq -> (match t with
           Float ->
-            let bool_mem = L.build_alloca i1_t "bool_mem" builder in
+            let bool_mem = L.build_malloc i1_t "bool_mem" builder in
             let new_bool = L.build_fcmp L.Fcmp.One (L.build_load e1' "left side of fneq" builder) (L.build_load e2' "right side of nfeq" builder) "tmp" builder in
             let _ = L.build_store new_bool bool_mem builder in
             (curr_symbol_table'', function_decls, builder,bool_mem)
           | Int ->
-            let bool_mem = L.build_alloca i1_t "bool_mem" builder in
+            let bool_mem = L.build_malloc i1_t "bool_mem" builder in
             let new_bool = L.build_icmp L.Icmp.Ne (L.build_load e1' "left side of neq" builder) (L.build_load e2' "right side of neq" builder) "tmp" builder in
             let _ = L.build_store new_bool bool_mem builder in
             (curr_symbol_table'', function_decls, builder, bool_mem)
@@ -480,12 +480,12 @@ let translate (stmts, functions) =
           let (t,_) = e in
           (match t with
           Float ->
-            let float_mem = L.build_alloca float_t "float_mem" builder in
+            let float_mem = L.build_malloc float_t "float_mem" builder in
             let new_float =  L.build_fneg (L.build_load e' "neg float" builder ) "tmp" builder in
             let _ = L.build_store new_float float_mem builder in
             (curr_symbol_table'', function_decls', builder, float_mem)
           | Int ->
-            let int_mem = L.build_alloca i32_t "int_mem" builder in
+            let int_mem = L.build_malloc i32_t "int_mem" builder in
             let new_int =L.build_neg (L.build_load e' "neg int" builder) "tmp" builder in
             let _ = L.build_store new_int int_mem builder in
             (curr_symbol_table'', function_decls', builder, int_mem)
@@ -496,7 +496,7 @@ let translate (stmts, functions) =
           let (t,_) = e in
           (match t with
             Bool ->
-            let bool_mem = L.build_alloca i1_t "bool_mem" builder in
+            let bool_mem = L.build_malloc i1_t "bool_mem" builder in
             let new_bool = L.build_not (L.build_load e' "not bool" builder)  "tmp" builder in
             let _ = L.build_store new_bool bool_mem builder in
             (curr_symbol_table'', function_decls', builder, bool_mem)

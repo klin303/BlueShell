@@ -1,0 +1,8 @@
+exec wc = <"wc" withargs ["-l"]>;
+exec cat_README = <"cat" withargs ["README"]>;
+exec cat_Makefile = <"cat" withargs ["compile.sh"]>;
+exec grep_BS = <"grep" withargs ["-a","BlueShell"]>;
+
+exec final_exec = (cat_README + cat_Makefile) | grep_BS| wc;
+./final_exec;
+

@@ -1,1 +1,3 @@
+// test multiple arguments in an executable
+
 ./<"./toplevel.native" withargs ["-s", "./tests/test-while1.bs"]>;

@@ -1,3 +1,5 @@
+// tests multiple layers of function pointers
+
 float addf(float a, float b)  {
     ./<"echo" withargs [a + b]>;
     return a + b;

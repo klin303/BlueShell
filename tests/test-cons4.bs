@@ -1,0 +1,12 @@
+// Tests cons with a value returned from a function
+
+exec get_exec(){
+    exec e = <"echo" withargs ["hello"]>;
+    return e;
+}
+
+exec e = get_exec();
+list of exec es = [];
+es = e :: es;
+./<"echo" withargs [e$]>;
+./<"echo" withargs [es[0]$]>;

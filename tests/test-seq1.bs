@@ -1,3 +1,5 @@
+// test basic executable sequencing
+
 exec e = <"echo" withargs ["hello"]>;
 exec e1 = <"echo" withargs ["kenny"]>;
 exec e2 = <"echo" withargs ["world"]>;

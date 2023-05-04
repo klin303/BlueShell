@@ -1,3 +1,5 @@
+// tests using the string returned from running an executable
+
 string s = "";
 s = ./<"echo" withargs ["hello world"]>;
 ./<"echo" withargs [s, " success!"]>;

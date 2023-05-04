@@ -1,3 +1,5 @@
+// tests a simple for loop, printing at each iteration to verify that it ran.
+
 int i;
 for (i = 0; i < 10; i = i + 1) {
   ./<"echo" withargs [i]>;

@@ -1,3 +1,5 @@
+// tests cons to an empty list
+
 list of string l = [];
 l = "str" :: l;
 

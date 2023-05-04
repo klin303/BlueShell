@@ -1,3 +1,5 @@
+// creates a function that takes a function as a parameter, calls the function in a loop
+
 int add(int a, int b) {
   ./<"echo" withargs [a + b]>;
   return a + b;

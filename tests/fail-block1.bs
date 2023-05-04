@@ -1,3 +1,6 @@
+// checks for scope mismatch between blocks
+// y should not be in scope outside of the curly braces
+
 int x = 1;
 {
   int y = 2;

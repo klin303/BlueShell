@@ -1,4 +1,4 @@
-// tests higher order functions 
+// tests simple function pointers
 
 float addf(float a, float b)  {
     ./<"echo" withargs [a + b]>;

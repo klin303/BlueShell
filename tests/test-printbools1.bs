@@ -1,3 +1,5 @@
+// tests printing booleans with autocasting
+
 bool arg1 = false;
 bool arg2 = true;
 

@@ -113,7 +113,7 @@ let check (stmts, functions) =
       (Bind b, ExprAssign) ->
                     let same = same_func(ty1, ty2) in
                     let ty = (match e1' with
-                      SBind b when same -> fst b
+                      | SBind b when same -> fst b
                       | _ -> (match ty1 with
                         List_type _ -> (match ty2 with
                           EmptyList -> ty1

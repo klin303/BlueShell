@@ -1,2 +1,0 @@
-list of exec l = [<"echo" withargs ["hi"]>, <"ls">];
-./l[0];

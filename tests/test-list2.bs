@@ -1,2 +1,0 @@
-list of int slist = [1];
-

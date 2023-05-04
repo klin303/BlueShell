@@ -8,42 +8,46 @@ exec e3 = <"grep" withargs ["-a", "zip"]>;
 exec e4 = <"grep" withargs ["-a", "BlueShell"]>;
 
 exec e5 = (e1 | e3) + (e2 | e4);
+./<"echo" withargs ["TEST 1 OUTPUT: ZIPS FROM FIRST FILE AND BLUESHELLS FROM SECOND"]>;
 string s = ./e5;
 
-./<"echo" withargs ["TEST 1 OUTPUT: ZIPS FROM FIRST FILE AND BLUESHELLS FROM SECOND"]>;
-./<"echo" withargs [s]>;
+
 
 ./<"echo" withargs ["______________"]>;
 exec e5 = (e1 | e3) * (e2 | e4);
+./<"echo" withargs ["\n\nTEST 2 OUTPUT: BLUESHELLS FROM SECOND"]>;
 string s = ./e5;
 
-./<"echo" withargs ["TEST 2 OUTPUT: BLUESHELLS FROM SECOND"]>;
-./<"echo" withargs [s]>;
+
+
 
 ./<"echo" withargs ["______________"]>;
 exec e5 = (e1 + e2) | e3;
+./<"echo" withargs ["\n\nTEST 3 OUTPUT: ZIPS FROM BOTH"]>;
 string s = ./e5;
 
-./<"echo" withargs ["TEST 3 OUTPUT: ZIPS FROM BOTH"]>;
-./<"echo" withargs [s]>;
+
+
 
 ./<"echo" withargs ["______________"]>;
 exec e5 = (e1 * e2) | e4;
+./<"echo" withargs ["\n\nTEST 4 OUTPUT: BLUESHELLS FROM SECOND"]>;
 string s = ./e5;
 
-./<"echo" withargs ["TEST 4 OUTPUT: BLUESHELLS FROM SECOND"]>;
-./<"echo" withargs [s]>;
+
+
 
 ./<"echo" withargs ["______________"]>;
 exec e6 = <"echo" withargs ["hello world"]>;
 exec e5 = (e2 * e1) | (e3 + (e6 + e6)) | <"grep" withargs ["-a", "hello"]> ;
+./<"echo" withargs ["\n\nTEST 5 OUTPUT: ZIPS FROM FIRST PLUS HELLO WORLDS"]>;
 string s = ./e5;
 
-./<"echo" withargs ["TEST 5 OUTPUT: ZIPS FROM FIRST PLUS HELLO WORLDS"]>;
-./<"echo" withargs [s]>;
+
+
 
 exec e5 = (e2 * e1) | (e3 + (e6 + e6) | <"grep" withargs ["-a", "hello"]>);
+./<"echo" withargs ["\n\nTEST 6 OUTPUT: GETS OUTPUT OF FIRST FILE, GREPS FOR ZIP WHICH GETS CONCATENATED WITH HELLO WORLD AND WE GREP FOR HELLO WORLD"]>;
 string s = ./e5;
 
-./<"echo" withargs ["TEST 6 OUTPUT: GETS OUTPUT OF FIRST FILE, GREPS FOR ZIP WHICH GETS CONCATENATED WITH HELLO WORLD AND WE GREP FOR HELLO WORLD"]>;
-./<"echo" withargs [s]>;
+

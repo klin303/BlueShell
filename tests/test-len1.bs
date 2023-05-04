@@ -1,3 +1,5 @@
+// tests len on both empty and non-empty lists
+
 list of int l1 = [1, 2, 3];
 list of int l2 = [];
 

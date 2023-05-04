@@ -1,2 +1,4 @@
+// tests boolean negation
+
 bool a = true;
 ./<"echo" withargs [!a]>;

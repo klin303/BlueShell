@@ -1,3 +1,5 @@
+// test executable concatenation with 2 args and >2 args
+
 exec e = <"echo" withargs ["hello"]>;
 exec e1 = <"echo" withargs ["kenny"]>;
 exec e2 = <"echo" withargs ["world"]>;
@@ -5,8 +7,6 @@ exec e2 = <"echo" withargs ["world"]>;
 ./e5;
 string s = ./e5;
 ./<"echo" withargs [s]>; */
-
-
 
 exec e4 = e + e1 + e2;
 string s;

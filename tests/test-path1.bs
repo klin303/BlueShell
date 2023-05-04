@@ -1,3 +1,5 @@
+// tests getting and setting the path of an executable
+
 exec e = <"cat" withargs ["hello world"]>;
 string s = e$;
 ./<"echo" withargs [s]>;

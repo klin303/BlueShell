@@ -1,2 +1,4 @@
+// tests run with a variable path
+
 string path1 = "echo";
 ./<path1 withargs ["hello world"]>;

@@ -1,3 +1,5 @@
+// tests a simple while loop, printing at each iteration
+
 int i = 0;
 while (i < 10) {
   ./<"echo" withargs [i]>;

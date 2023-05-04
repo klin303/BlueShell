@@ -1,3 +1,5 @@
+// tests cons to a non-empty list
+
 list of string l = "str" :: ["hello", "world"];
 
 ./<"echo" withargs l>;

@@ -1,13 +1,23 @@
+
+// Executes an executable type
 string execute_exec(exec e) {
     return ./e;
 }
 
+// Executes an executable type
+exec create_execs(string s) {
+    return <s>;
+}
+
+//compiles a bs executable
 exec create_compile_execs(string s) {
     return <"./compile.sh" withargs [s]>;
 }
 
+//maps a list of executables over a function and outputs a list of strings
 list of exec map_string_to_exec(function (string -> exec) func, list of string strings) {
     int l = len strings;
+
     list of exec new_execs = [];
     for (int i = 0; i < l; i = i + 1) {
         new_execs = func(strings[i]) :: new_execs;
@@ -15,15 +25,26 @@ list of exec map_string_to_exec(function (string -> exec) func, list of string s
     return new_execs;
 }
 
-list of string execs_to_compile = ["tests/test-echo1.bs","tests/test-pipe1.bs", "tests/test-concatseq1.bs"];
+// maps a list of strings over a function and outputs a list of executables
+list of string map_exec_to_string(function (exec -> string) func, list of exec execs) {
+    int l = len execs;
+    list of string new_strings = [];
+    for (int i = 0; i < l; i = i + 1) {
+        new_strings = func(execs[i]) :: new_strings;
+    }
+    return new_strings;
+}
 
+//creates exeutables that compiles the following tests
+list of string execs_to_compile = ["tests/test-echo1.bs","tests/test-pipe1.bs", "tests/test-concatseq1.bs"];
 list of exec compile_execs = map_string_to_exec(create_compile_execs, execs_to_compile);
 
-//list of exec compile_execs = [<"./compile.sh" withargs ["tests/test-echo1.bs"]>];
+// compiles the scripts
+map_exec_to_string(execute_exec, compile_execs);
 
-./compile_execs[0];
-//./<"./test-echo1.exe">;
+// executes the compiled bs programs
+list of string run_execs = ["./test-echo1.exe", "./test-pipe1.exe", "./test-concatseq1.exe"];
+list of exec final_execs = map_string_to_exec(create_execs, run_execs);
+map_exec_to_string(execute_exec, final_execs);
 
-/*for (int i = 0; i < 3; i = i + 1) {
-  ./compile_execs[i];
-}*/
+
