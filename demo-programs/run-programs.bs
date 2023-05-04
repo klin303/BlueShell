@@ -19,7 +19,7 @@ list of exec map_string_to_exec(function (string -> exec) func, list of string s
     int l = len strings;
 
     list of exec new_execs = [];
-    for (int i = 0; i < l; i = i + 1) {
+    for (int i = l - 1; i >= 0; i = i - 1) {
         new_execs = func(strings[i]) :: new_execs;
     }
     return new_execs;
@@ -29,7 +29,7 @@ list of exec map_string_to_exec(function (string -> exec) func, list of string s
 list of string map_exec_to_string(function (exec -> string) func, list of exec execs) {
     int l = len execs;
     list of string new_strings = [];
-    for (int i = 0; i < l; i = i + 1) {
+    for (int i = l - 1; i >= 0; i = i - 1) {
         new_strings = func(execs[i]) :: new_strings;
     }
     return new_strings;
