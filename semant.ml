@@ -181,9 +181,9 @@ let check (stmts, functions) =
       | (_, Equal) | (_, Neq) ->
                     let same = same_func (ty1, ty2) in
                     (match ty1 with
-                      Bool | Float | Int when same -> (symbol_table'', (Bool, SBinop((ty1, e1'), op,
+                       | Float | Int when same -> (symbol_table'', (Bool, SBinop((ty1, e1'), op,
                               (ty2, e2'))))
-                    | _ -> raise (Failure ("operator expected bool, int, or float")))
+                    | _ -> raise (Failure ("operator expected int, or float")))
       (* cons requires the element being appended to match the type of the list *)
       (* any element can be cons'd to an empty list *)
       | (_, Cons) ->

@@ -37,7 +37,7 @@ RANGLE OF ARROW/* structural tokens */
 %left PIPE
 %right NOT
 %right LEN
-%left CONS
+%right CONS
 %right LBRACKET LPAREN
 %right PATH
 
