@@ -1,60 +1,115 @@
 #!/bin/sh
-# This script runs all or a single test in the tests directory
 
-# Note: both succ and fail test names need to be added to the Makefile
+# Both succ and fail test names need to be added to the Makefile
 # for this list to be updated.
-
+#
 tests=$(make print_succtests)
 fail_tests=$(make print_failtests)
-base_dir="tests/"
+test_dir="tests/"
 
+sast_tests=$(make print_succsast)
+sast_fail=$(make print_failsast)
+sast_dir="sast-tests"
+
+sp_tests=$(make print_succsp)
+sp_fail=$(make print_failsp)
+sp_dir="sp-tests" 
 
 Usage() {
-    echo "Usage: ./testall.sh [-a | -s <testname>] [-keept] [-keepc] \n
+    echo "Usage: ./testall.sh [-sast | -sp | [-a | -s <testname>] [-keept] [-keepc]]  \n
           Flags:
-            -a : run all tests specified in /tests directories
+            -sast: Run sast tests 
+            -sp: Run Scanner-parser tests
+            -a : run all regular executable tests specified in /tests directories
                  and test against expected output
             -s <testname>:
-                Run a single test located in test/<fail|tests>-<testname>.bs
+                Run a single executable test located in test/<fail|tests>-<testname>.bs
                 and tests against expected output
-            -keept: Keep intermediate output files produced during testing
+            -keept: Optional: Keep intermediate output files produced during testing
                     (.out and .diff files)
             -keepc: Keep intermediate output files produced during
                    compilation (.s and .llvm files)"
     exit
 }
 
-run_gsts_tests()
+
+# runs all sast tests
+run_sast_tests()
 {
-    # Both succ and fail test names need to be added to the Makefile
-    # for this list to be updated.
-    # The name is in the filename as "test-<filename>.bs"
-    #
-
-
-
-    echo "Making top level:"
-    make clean
-    make toplevel.native
-    echo "Going into the test directory ...."
-    cd $base
-
-
-
-    echo "\n"
-    echo "\n"
-    echo "\n"
-    echo "**********************RUNNING SUCCESS TESTS**********************\n"
-    for test in $tests
+    echo "************************RUNNING SAST TESTS***********************\n"
+    echo "**********************RUNNING SAST SUCCESS TESTS**********************\n"
+    for test in $sast_tests
     do
         echo "Running test $test........"
-        file_name="test-${test}.bs"
-        gold_standard="test-${test}.gst"
-        ./toplevel.native < $file_name > "out/$test.out"
-        diff "$test.tsout" $gold_standard > "diff/$test.diff"
-        if [ -s $test.diff ]; then
+        file_name="${sast_dir}/${test}.bs"
+        gold_standard="${sast_dir}/${test}.gst"
+        ./toplevel.native -s < $file_name > "${sast_dir}/out/$test.out"
+        diff "${sast_dir}/out/$test.out" $gold_standard > "${sast_dir}/diff/$test.diff"
+        if [ -s "${sast_dir}/diff/$test.diff" ]; then
+            echo "\nERROR: SAST FOR ${test} DOES NOT MATCH GOLD STANDARD\n"
+            echo "The difference: \n"
+            cat ${sast_dir}/diff/$test.diff
+        else
+            echo "PASSED \n"
+        fi
+
+    done
+
+    echo "\n"
+    echo "\n"
+    echo "\n"
+    echo "**********************RUNNING SAST FAILURE TESTS**********************\n"
+
+    # cringe fail test compilation
+    for ftest in $sast_fail
+    do
+        echo "Running failure test $ftest............"
+        file_name="${sast_dir}/${ftest}.bs"
+        fail_standard="${sast_dir}/${ftest}.gst"
+        ./toplevel.native -a < $file_name 2> "${sast_dir}/out/$ftest.out"
+        diff "${sast_dir}/out/$ftest.out" $fail_standard > "${sast_dir}/diff/$ftest.diff"
+        if [ -s "${sast_dir}/diff/$ftest.diff" ]; then
+            echo "ERROR: OUTPUT FOR ${ftest} DOES NOT MATCH EXPECTED OUTPUT \n "
+            echo "The difference: \n"
+            cat "${sast_dir}/diff/$ftest.diff"
+        else
+            echo "PASSED \n"
+        fi
+
+    done
+
+    echo "removing .out and .diff files created:"
+
+    diffpath="sast-tests/diff/*"
+    rm -f $path
+
+    outpath="sast-tests/gsts/*"
+
+    rm -f $path
+
+    echo "\n"
+
+    echo "bye"
+    # bye
+}
+
+
+
+# runs all scanner parser tests
+run_sp_tests()
+{
+    echo "************************RUNNING SP TESTS***********************\n"
+    echo "**********************RUNNING SUCCESS TESTS**********************\n"
+    for test in $sp_tests
+    do
+        echo "Running test $test........"
+        file_name="${sp_dir}/${test}.bs"
+        gold_standard="${sp_dir}/${test}.gst"
+        ./toplevel.native -a < $file_name > "${sp_dir}/out/$test.out"
+        diff "${sp_dir}/out/${test}.out" $gold_standard > "${sp_dir}/diff/$test.diff"
+        if [ -s "${sp_dir}/diff/$test.diff" ]; then
             echo "\nERROR: AST FOR ${test} DOES NOT MATCH GSAST\n\n"
-            cat $test.diff
+            cat "${sp_dir}/diff/$test.diff"
         else
             echo "PASSED \n"
         fi
@@ -67,16 +122,16 @@ run_gsts_tests()
     echo "**********************RUNNING FAILURE TESTS**********************\n"
 
     # cringe fail test compilation
-    for ftest in $fail_tests
+    for ftest in $sp_fail
     do
         echo "Running failure test $ftest............"
-        file_name="fail-${ftest}.bs"
-        fail_standard="fail-${ftest}.gst"
-        ./toplevel.native < $file_name 2> "out/$test/ftest.out"
-        diff "$ftest.out" $fail_standard > "diff/$test.diff"
-        if [ -s $ftest.diff ]; then
+        file_name="${sp_dir}/${ftest}.bs"
+        fail_standard="${sp_dir}/${ftest}.gst"
+        ./toplevel.native < $file_name 2> "${sp_dir}/out/$ftest.out"
+        diff "${sp_dir}/out/${ftest}.out" $fail_standard > "${sp_dir}/diff/$ftest.diff"
+        if [ -s "${sp_dir}/diff/$ftest.diff" ]; then
             echo "ERROR: OUTPUT FOR ${ftest} DOES NOT MATCH EXPECTED OUTPUT \n "
-            cat $ftest.diff
+            cat "${sp_dir}/diff/$ftest.diff"
         else
             echo "PASSED \n"
         fi
@@ -95,7 +150,7 @@ run_gsts_tests()
 }
 
 
-
+# cecks if a file exists
 check_success() {
     if [ $1 -ne 0 ]
         # last command failed
@@ -119,7 +174,7 @@ compile_one_test() {
     check_success $?
 }
 
-
+# runs one single executable tests and compares it to its gold standard 
 run_single_test() {
     testname=$1
     testpath="tests/$testname.bs"
@@ -155,6 +210,7 @@ run_single_test() {
     fi
 }
 
+# runs one failure tests; should semantically fail 
 run_fail_test() {
     ftest=$1
     echo "Running failure test $1..........."
@@ -170,6 +226,8 @@ run_fail_test() {
     fi
 }
 
+
+# runs all tests
 run_all_tests() {
     # get all test names
 
@@ -237,14 +295,32 @@ clean_up() {
 }
 
 
+# THE PROGRAM IS STARTING
+
+
 # wrong number of arguments
 if [ $# -lt 1 ]
     then
     Usage
 fi
 
+make clean
 echo "Making...."
 make
+
+if [ $1 = "-sast" ]
+    then 
+    run_sast_tests
+    exit 
+fi 
+
+
+if [ $1 = "-sp" ]
+    then 
+    run_sp_tests
+    exit 
+fi 
+
 
 # -a runs all tests
 if [ $1 = "-a" ]

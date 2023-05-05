@@ -1,5 +1,5 @@
-// detects non-executable used with run 
+// run operator is in the wrong place
 
 float a = 0.0;
 
-./a;
+a./;

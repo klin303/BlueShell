@@ -43,6 +43,15 @@ SPTESTS = $(shell find sp-tests -type f -name 'test*.bs' -exec basename {} \;)
 
 SPFAILS = $(shell find sp-tests -type f -name 'fail*.bs' -exec basename {} \;)
 
+SUCCSP_NAMES = $(SPTESTS:%.bs=%)
+FAILSP_NAMES = $(SPFAILS:%.bs=%)
+
+print_succsp:
+	@echo $(SUCCSP_NAMES)
+
+print_failsp:
+	@echo $(FAILSP_NAMES)
+
 # sast tests
 SAST_TESTS = $(shell find sast-tests -type f -name 'test*.bs' -exec basename {} \;)
 

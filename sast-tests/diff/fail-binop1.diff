@@ -1,0 +1,3 @@
+0a1,2
+> Fatal error: exception Failure("+ and * take two integers,
+>                     floats, or executables")
