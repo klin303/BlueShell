@@ -96,10 +96,6 @@ test-boolops1.bs
     Tests the boolean operations &&, ||, and, or, and prints out the results of
     each.
 
-test-cat1.bs
-    Creates an executable with two string arguments. Executes it to demonstrate
-    that multiple arguments work.
-
 test-charfunc1.bs
     Tests the char type by printing out chars and
     also printing out variable of type char
@@ -197,10 +193,6 @@ test-intarith1.bs
 
 test-len1.bs
     Tests len on both empty and non-empty lists.
-
-test-list1.bs
-    Stores a list with two string arguments in a list variable. Creates an
-    executable using the list variable and executes it.
 
 test-map.bs
     Creates a function that takes a function as a parameter. Calls the 
