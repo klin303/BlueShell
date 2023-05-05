@@ -1,8 +1,9 @@
 #!/bin/sh
+# This script runs all or a single test in the tests directory
 
-# Both succ and fail test names need to be added to the Makefile
+# Note: both succ and fail test names need to be added to the Makefile
 # for this list to be updated.
-#
+
 tests=$(make print_succtests)
 fail_tests=$(make print_failtests)
 base_dir="tests/"

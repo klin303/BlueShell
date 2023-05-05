@@ -1,8 +1,8 @@
 // test combinations of executable operators
 // expected results are printed when this program is run
 
-exec e1 = <"cat" withargs ["test_file.txt"]>;
-exec e2 = <"cat" withargs ["test_file2.txt"]>;
+exec e1 = <"cat" withargs ["sample-files/test_file.txt"]>;
+exec e2 = <"cat" withargs ["sample-files/test_file2.txt"]>;
 
 exec e3 = <"grep" withargs ["-a", "zip"]>;
 exec e4 = <"grep" withargs ["-a", "BlueShell"]>;

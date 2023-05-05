@@ -1,4 +1,4 @@
-/* tests printing floats with autocasting
+/* tests printing floats with autocasting */
 
 float f = 1.2;
 

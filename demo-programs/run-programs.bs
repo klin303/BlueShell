@@ -1,3 +1,5 @@
+/* run-programs.bs
+   compiles and runs some BlueShell test programs */
 
 // Executes an executable type
 string execute_exec(exec e) {

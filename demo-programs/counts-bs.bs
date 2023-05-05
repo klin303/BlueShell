@@ -1,3 +1,5 @@
+/* creates some executables and combines them with concat and pipe operators */
+
 exec wc = <"wc" withargs ["-l"]>;
 exec cat_README = <"cat" withargs ["README"]>;
 exec cat_Makefile = <"cat" withargs ["compile.sh"]>;
