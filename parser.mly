@@ -15,7 +15,7 @@ RANGLE OF ARROW/* structural tokens */
 %token <bool> BLIT
 %token <string> ID FLIT CHAR STRING
 %token EOF
-%token PIPE RUN EXITCODE PATH WITHARGS /* executable operators */
+%token PIPE RUN PATH WITHARGS /* executable operators */
 %token CONS LEN /* list operators */
 
 %start program
@@ -25,7 +25,6 @@ RANGLE OF ARROW/* structural tokens */
 %nonassoc ID
 %nonassoc NOELSE
 %nonassoc ELSE
-%left EXITCODE
 %left RUN
 %right ASSIGN
 %left OR
@@ -157,7 +156,6 @@ expr:
   | vdecl                     { Bind($1)               }
   | ID LPAREN args_opt RPAREN { Call($1, $3)           }
   | LPAREN expr RPAREN        { $2                     }
-  | expr EXITCODE             { PostUnop($1, ExitCode) }
   | index                     { $1                     }
   | expr PATH                 { PreUnop(Path, $1)      }
   | RUN expr                  { PreUnop(Run, $2)       }

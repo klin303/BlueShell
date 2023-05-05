@@ -10,7 +10,7 @@ type op = Add | Sub | Mult | Div | Equal | Neq | Less | Leq | Greater | Geq |
 type index = Index
 
 (* general unary operators *)
-type uop = Neg | Not | ExitCode | Run | Path | Length
+type uop = Neg | Not | Run | Path | Length
 
 (* types *)
 type typ = Int | Bool | Float | Void | Exec | Char | String | List_type of typ |
@@ -79,7 +79,6 @@ let string_of_op = function
 
 let string_of_uop = function
     Neg ->        "-"
-  | ExitCode ->   "?"
   | Run ->        "./"
   | Path ->       "$"
   | Not ->        "!"

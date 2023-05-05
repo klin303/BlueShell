@@ -19,6 +19,7 @@ type symbol_table = {
 
 let check (stmts, functions) =
 
+  (* carry a boolean when checking all the arg types of a function *)
   let check_arg_types is_valid args1 args2  = is_valid && (args1 = args2)
   in
 
@@ -63,6 +64,7 @@ let check (stmts, functions) =
     and ty = Function(List.map fst fd.formals, fd.typ) in
     add_bind map (ty, n)
   in
+
   (* Collect all other function names into one symbol table *)
   (* Start with empty environment and map over statements, carrying updated
   environment as you go *)
@@ -71,6 +73,7 @@ let check (stmts, functions) =
   let env_with_functions = List.fold_left add_func_symbol_table empty_env functions
   in
 
+  (* check function types *)
   let same_func ((ty1 : typ), (ty2 : typ)) =
     (match ty1 = ty2 with
       true -> true
@@ -81,15 +84,18 @@ let check (stmts, functions) =
 
   let rec expr (curr_symbol_table : symbol_table) expression =
   match expression with
+    (* all literals evaluate to their own type *)
     Literal l     -> (curr_symbol_table, (Int, SLiteral l))
   | Fliteral l    -> (curr_symbol_table, (Float, SFliteral l))
   | BoolLit l     -> (curr_symbol_table, (Bool, SBoolLit l))
+    (* search symbol table for identifiers *)
   | Id var        -> (curr_symbol_table, (type_of_identifier curr_symbol_table var, SId var))
   | Char s        -> (curr_symbol_table, (Char, SChar s))
   | String s      -> (curr_symbol_table, (String, SString s))
   | Exec(e1, e2)  ->
     let (_, (ty1, e1')) = expr curr_symbol_table e1 in
     let (_, (ty2, e2')) = expr curr_symbol_table e2 in
+    (* path must be a string, args must be a list *)
     (match ty1 with
       String ->
         (match ty2 with
@@ -100,16 +106,20 @@ let check (stmts, functions) =
   | Index(e1, e2) ->
     let (_, (ty1, e1')) = expr curr_symbol_table e1 in
     let (_, (ty2, e2')) = expr curr_symbol_table e2 in
+    (* can only index into lists *)
     (match (ty1, ty2) with
       (List_type ty, Int) -> (curr_symbol_table, (ty, (SIndex ((ty1, e1'), (ty2, e2')))))
       | _ -> raise (Failure ("Indexing takes a list and integer")))
   | Binop(e1, op, e2) ->
     let (symbol_table', (ty2, e2')) = expr curr_symbol_table e2
     in let (symbol_table'', (ty1, e1')) = expr symbol_table' e1 in
-    (match e2 with Bind _ -> raise (Failure "Bind cannot happen on left side of
-    binops")
+    (match e2 with Bind _ -> raise (Failure "Bind cannot happen on left side of binops")
     | _ ->
     (match (e1, op) with
+      (* only certain expressions can appear on the left side of an ExprAssign *)
+      (* bind allows for "int x = 1;" *)
+      (* index allows for assignment of list elements *)
+      (* path is valid on the left side to change the path of an executable *)
       (Bind b, ExprAssign) ->
                     let same = same_func(ty1, ty2) in
                     let ty = (match e1' with
@@ -139,6 +149,8 @@ let check (stmts, functions) =
                       | _ -> raise (Failure ("invalid preunop with exprassign")))
       | (_, ExprAssign) -> raise (Failure "expression assignment needs a bind")
       | (Bind _, _) -> raise (Failure "bind needs an expression assignment")
+      (* arithmetic and boolean operations require 2 of the same types *)
+      (* executable operations can work on any combination of simple and complex executables *)
       | (_, Add) | (_, Mult) ->
                     let same = same_func(ty1, ty2) in
                     (match ty1 with
@@ -172,6 +184,8 @@ let check (stmts, functions) =
                       Bool | Float | Int when same -> (symbol_table'', (Bool, SBinop((ty1, e1'), op,
                               (ty2, e2'))))
                     | _ -> raise (Failure ("operator expected bool, int, or float")))
+      (* cons requires the element being appended to match the type of the list *)
+      (* any element can be cons'd to an empty list *)
       | (_, Cons) ->
                     (match ty2 with
                       EmptyList -> (symbol_table'', (List_type ty1, SBinop((ty1, e1'), op,
@@ -196,11 +210,11 @@ let check (stmts, functions) =
     (match op with
       Run ->
               (match ty1 with
-                Exec -> (curr_symbol_table, (String, SPreUnop (Run, (ty1, e1)))) (* what do we put here*)
+                Exec | ComplexExec -> (curr_symbol_table, (String, SPreUnop (Run, (ty1, e1))))
               | _ -> raise (Failure ("Run takes type executable")))
     | Neg ->
               (match ty1 with
-                Int | Float -> (curr_symbol_table, (ty1, SPreUnop (Neg, (ty1, e1)))) (* what do we put here*)
+                Int | Float -> (curr_symbol_table, (ty1, SPreUnop (Neg, (ty1, e1))))
               | _ -> raise (Failure ("Negation takes an interger, float, or list")))
     | Length ->
               (match ty1 with
@@ -208,24 +222,22 @@ let check (stmts, functions) =
               | _ -> raise (Failure ("Length takes a list")))
     | Path ->
               (match ty1 with
-                Exec -> (curr_symbol_table, (String, SPreUnop (Path, (ty1, e1)))) (* what do we put here*)
+                Exec -> (curr_symbol_table, (String, SPreUnop (Path, (ty1, e1))))
               | _ -> raise (Failure ("Run takes type executable")))
     | Not ->
               (match ty1 with
-                Bool -> (curr_symbol_table, (Bool, SPreUnop (Not, (ty1, e1)))) (* what do we put here*)
-              | _ -> raise (Failure ("Boolean negation takes a boolean")))
-    | _ -> raise (Failure ("other preunops not implemented yet"))))
+                Bool -> (curr_symbol_table, (Bool, SPreUnop (Not, (ty1, e1))))
+              | _ -> raise (Failure ("Boolean negation takes a boolean")))))
   | PostUnop(e, op)   ->
     let (_, (ty1, e1)) = expr curr_symbol_table e in
     (match e1 with
-    SBind _ -> raise (Failure "No bind can occur in a larger expression")
-    | _ ->
+      SBind _ -> raise (Failure "No bind can occur in a larger expression")
+      | _ ->
     (match op with
-      ExitCode -> (match ty1 with
-                    Exec -> (curr_symbol_table, (Int, SPostUnop ((ty1, e1), ExitCode)))
-                    | _ -> raise (Failure ("ExitCode takes type executable")))
       | _ -> raise (Failure ("invalid postunop"))))
   | Assign(var, e) as ex ->
+    (* ensure that type of variable matches type of expression being assigned to
+    it *)
     (match e with
     Bind _ -> raise (Failure "No bind can occur in a larger expression")
     | _ ->
@@ -235,6 +247,8 @@ let check (stmts, functions) =
       string_of_typ rt ^ " in " ^ string_of_expr ex
     in (curr_symbol_table, (check_assign lt rt err, SAssign(var, (rt, e')))))
   | Call(fname, args) as call ->
+    (* ensure that calling a function is done with the correct parameter types *)
+    (* also checks that the return value of the function isn't improperly assigned *)
       (match type_of_identifier curr_symbol_table fname with
           Function (args_typs, ret_typ) ->
             let param_length = List.length args_typs in
@@ -250,8 +264,8 @@ let check (stmts, functions) =
             let args' = List.map2 check_call args_typs args
             in (curr_symbol_table, (ret_typ, SCall(fname, args')))
           | _ -> raise (Failure ("Not a function")))
-
   | List expr_list ->
+    (* assert that all elements of a list are the same type *)
     let rec check_list (exprs : expr list) curr_symbol_table =
       match exprs with
       fst_elem :: snd_elem :: rest -> let (_, (ty1, e1)) = expr curr_symbol_table fst_elem in let
@@ -284,6 +298,7 @@ let check (stmts, functions) =
   let rec check_stmt (curr_symbol_table : symbol_table) statement =
   match statement with
     Block stmts ->
+      (* recurse on statements in a block *)
       let rec check_stmt_list (curr_symbol_table' : symbol_table) sl =
         (match sl with
               [Return _ as s] -> [snd (check_stmt curr_symbol_table' s)]
@@ -304,6 +319,7 @@ let check (stmts, functions) =
     (new_symbol_table, SExpr e')
   | If(e, s1, s2) ->
     let (curr_symbol_table', (ty, e')) = expr curr_symbol_table e in
+    (* condition in if statement must be a boolean *)
     (match ty with
       Bool -> (curr_symbol_table, SIf((ty, e'), snd (check_stmt curr_symbol_table' s1), snd (check_stmt
       curr_symbol_table' s2)))
@@ -312,12 +328,14 @@ let check (stmts, functions) =
     let (curr_symbol_table', (ty1, e1')) = expr curr_symbol_table e1 in
     let (curr_symbol_table'', (ty2, e2')) = expr curr_symbol_table' e2 in
     let (curr_symbol_table''', (ty3, e3')) = expr curr_symbol_table'' e3 in
+    (* second expression in for loop must be a boolean *)
     (match ty2 with
       Bool -> (curr_symbol_table''', SFor((ty1, e1'), (ty2, e2'), (ty3, e3'),
       snd (check_stmt curr_symbol_table''' s)))
       | _ -> raise (Failure ("for needs a boolean as the second expression")))
   | While(e, s) ->
     let (curr_symbol_table', (ty, e')) = expr curr_symbol_table e in
+    (* condition in while loop must be a boolean *)
       (match ty with
       Bool -> (curr_symbol_table, SWhile((ty, e'), snd (check_stmt curr_symbol_table' s)))
       | _ -> raise (Failure ("if needs a boolean predicate")))
@@ -325,8 +343,9 @@ let check (stmts, functions) =
   (* Final checked program to return *)
   in
 
+  (* check statements in a function, slightly different from check_stmt because
+  return statements can appear in a function but not in top-level statements *)
   let check_func symbol_table func =
-    (* let map = StringMap.empty in *)
     let add_formals formal_map name typ =
       StringMap.add name typ formal_map
     in

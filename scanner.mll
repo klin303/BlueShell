@@ -63,7 +63,6 @@ rule tokenize = parse
 (* executable operators *)
 | "|"        { PIPE }
 | "./"       { RUN }
-| "?"        { EXITCODE }
 | "$"        { PATH }
 | "withargs" { WITHARGS }
 (* list operators *)

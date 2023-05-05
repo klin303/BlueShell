@@ -1,0 +1,4 @@
+// test executable operator without assigning it to a variable
+
+exec e = <"echo" withargs ["hello world"]>;
+./(e + e);

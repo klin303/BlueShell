@@ -206,10 +206,13 @@ test-map.bs
     Creates a function that takes a function as a parameter. Calls the 
     function in a loop.
 
-tests-neg1.bs
+test-neg1.bs
     Tests integer and float negation.
 
-tests-not1.bs
+test-noassignops.bs
+    Tests executable operator without assigning it to a variable
+
+test-not1.bs
     Tests boolean negation.
 
 test-path1.bs
@@ -221,13 +224,13 @@ test-printbools1.bs
 test-printfloat1.bs
     Tests printing floats with autocasting.
 
-tests-printints.bs
+test-printints.bs
     Tests printing ints with autocasting.
 
-tests-returnfunc1.bs
+test-returnfunc1.bs
     Tests using the return value of a function.
 
-tests-run1.bs
+test-run1.bs
     Tests run with a variable path.
 
 test-runreturn1.bs
@@ -236,7 +239,7 @@ test-runreturn1.bs
 test-seq1.bs
     Tests basic executable sequencing with multiple arguments.
 
-tests-string1.bs
+test-string1.bs
     Tests string assignment and putting strings as the arg of an executable
 
 test-stringfunc1.bs

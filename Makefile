@@ -81,7 +81,7 @@ SAST_TESTFILES = $(SAST_TESTS) $(SAST_TESTS:%.bs=gsts/%.gst) \
 
 ZIPFILES = ast.ml scanner.mll toplevel.ml parser.mly sast.ml semant.ml \
 		   codegen.ml _tags exec.c testall.sh compile.sh README Makefile \
-			tests sast-tests
+			tests sast-tests sp-tests make-gsts.sh demo-programs sample-files
 
 # zips files and tests together
 bostonbitpackers.zip : $(ZIPFILES)

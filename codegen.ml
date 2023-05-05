@@ -546,8 +546,7 @@ let translate (stmts, functions) =
           let _ = L.build_cond_br (L.build_load bool_mem "bool_mem" pred_builder) index_body_bb merge_bb pred_builder in
           let merge_body_builder = L.builder_at_end context merge_bb in
 
-          (curr_symbol_table', new_function_decls, merge_body_builder, counter_ptr)
-      | _   -> raise (Failure "preuop not implemented"))
+          (curr_symbol_table', new_function_decls, merge_body_builder, counter_ptr))
     | SList l -> (* Returns a pointer to the first node in the list *)
       (match l with
       [] -> (curr_symbol_table, function_decls, builder, L.const_pointer_null (L.pointer_type list_t))
