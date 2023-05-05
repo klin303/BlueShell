@@ -12,8 +12,17 @@ if [ $# -lt 1 ]
     Usage
 fi
 
-# strips filename from path and extension
+
 full_filename=$1
+# strips extension from full filename
+extension="${full_filename##*.}"
+# enforces the .bs extension
+if [ "$extension" != "bs" ];
+    then 
+    Usage 
+fi
+
+# strips filename from path and extension
 filename=$(basename -- "$full_filename")
 filename=${filename%.*}
 
