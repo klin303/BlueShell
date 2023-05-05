@@ -99,7 +99,11 @@ let check (stmts, functions) =
     (match ty1 with
       String ->
         (match ty2 with
-          List_type ty -> (curr_symbol_table, (Exec, (SExec ((ty1, e1'), (ty2, e2')))))
+          List_type ty ->(match ty with
+            Int | Float | Bool | String | Char -> (curr_symbol_table, (Exec, (SExec ((ty1, e1'), (ty2, e2')))))
+            | _ -> raise (Failure ("exec args cannot be of type function, list, or exec")))
+
+
           | EmptyList -> (curr_symbol_table, (Exec, (SExec ((ty1, e1'), (List_type String, SList [])))))
           | _ -> raise (Failure ("args must be a list of string")))
       | _ -> raise (Failure ("path must be a string")))
