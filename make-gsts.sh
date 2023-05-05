@@ -4,27 +4,34 @@
 # It creates new gold standards, both errors and ASTs for our compiler.
 
 
-tests=$(Make print_succtests)
-fail_tests=$(Make print_failtests)
+# info for e2e tests
+
+e2e_tests=$(make print_succtests)
+e2e_fail=$(make print_failtests)
 test_dir="tests/"
-gsts_dir="tests/gsts/"
 
-### for sast
-sast_succ=$(Make print_succsast)
-sast_fail=$(Make print_failsast)
+sast_tests=$(make print_succsast)
+sast_fail=$(make print_failsast)
+sast_dir="sast-tests"
 
-sast_dir="sast-tests/"
-sast_gsts="sast-tests/gsts/"
+sp_tests=$(make print_succsp)
+sp_fail=$(make print_failsp)
+sp_dir="sp-tests" 
+
+## sp test info 
 
 
 Usage() {
-    echo "./make-gsts.sh [test-name]
-        where test-name: makes gold standard for test test-name"
+    echo "./make-gsts.sh [-sp | -sast | -e2e] [test-name]
+        -sp :create gsts for scanner-parser tests
+        -sast: create gsts for SAST tests
+        -e2e: create gsts for e2e tests
+        test-name: optional string that makes gold standard for test test-name"
 }
 
 
 check_success() {
-    if [ $1 -ne 0 ]
+    if [ $1 -ne 0 ];
         # last command failed
         then
             echo "Previous command failed with exit code {$1}\n"
@@ -63,6 +70,7 @@ run_one_gst() {
         ./toplevel.native -s < $file_name 2> $gold_standard
     else
         if [ $type == "test" ]; then
+            # actually compile and run
             compile_one_test $test
             output="$test.exe"
             ./$output > $gold_standard
@@ -72,24 +80,121 @@ run_one_gst() {
     fi
 }
 
-
-## start execution
-make
-
-if [ "$#" -eq 0 ]; then
-    echo "Making gold standard for all tests:"
-    for test in $tests; do
-        run_one_gst $test
-    done
-    for test in $fail_tests; do
-        run_one_gst $test
-    done
-else
-    if [ "$#" -eq 1 ]; then
-    echo "Making gold standard for one test $1:"
-    run_one_gst $1
+# create one sast gst 
+run_sast_gst()
+{
+    test=$1
+    file_name="sast-tests/${test}.bs"
+    echo "making gst file $file_name...\n"
+    if [ ! -f $file_name ]; then
+        echo "****ALERT***** Test ${test} doesn't exist. we're not gonna try :/ \n\n\n\n"
+        continue;
     fi
+    gold_standard="sast-tests/${test}.gst"
+    touch $gold_standard
+    type=${test::4}
+    if [ $type == "fail" ]; then
+        # get from stderr
+        ./toplevel.native -s < $file_name 2> $gold_standard
+    else
+        ./toplevel.native -s < $file_name > $gold_standard
+    fi 
+
+}
+
+#create a single gst of a scanner-parser test
+run_sp_gst() 
+{
+    test=$1
+    file_name="sp-tests/${test}.bs"
+    echo "making gst file $file_name...\n"
+    if [ ! -f $file_name ]; then
+        echo "****ALERT***** Test ${test} doesn't exist. we're not gonna try :/ \n\n\n\n"
+        continue;
+    fi
+    gold_standard="sp-tests/${test}.gst"
+    touch $gold_standard
+    type=${test::4}
+    if [ $type == "fail" ]; then
+        # get from stderr
+        ./toplevel.native -a < $file_name 2> $gold_standard
+    else
+        # get standard output 
+        ./toplevel.native -a < $file_name > $gold_standard
+    fi 
+    
+}
+
+
+if [ $# -lt 1 ];
+    then
+    Usage
 fi
+
+make 
+
+# scanner parser gsts
+if [ $1 = "-sp" ]; then 
+    if [ "$#" -eq 1 ]; then
+    echo "Making gold standard for all scanner-parser tests:"
+        for test in $sp_tests; do
+            run_sp_gst $test
+        done
+
+        for test in $sp_fail; do
+            run_sp_gst $test
+        done
+    fi 
+    exit
+else
+    if [ "$#" -eq 2 ]; then
+        echo "Making gold standard for one scanner-parser test $2:"
+        run_sp_gst $2
+    fi 
+    exit 
+fi 
+
+# sast gsts
+if [ $1 = "-sast"]; then 
+    if [ "$#" -eq 1 ]; then
+    echo "Making gold standard for all sast tests:"
+        for test in $sast_tests; do
+            run_sast_gst $test
+        done
+        for test in $sast_fail; do
+            run_sast_gst $test
+        done
+    fi 
+    exit
+else
+    if [ "$#" -eq 2 ]; then
+        echo "Making gold standard for one sast test $2:"
+        run_sast_gst $2
+    fi 
+    exit
+fi 
+
+
+# create e2e gsts
+if [ $1 = "-e2e"]; then 
+    if [ "$#" -eq 1 ]; then
+    echo "Making gold standard for all e2e tests:"
+        for test in $tests; do
+            run_one_gst $test
+        done
+        for test in $fail_tests; do
+            run_one_gst $test
+        done
+    fi 
+    exit 
+else
+    if [ "$#" -eq 2 ]; then
+        echo "Making gold standard for one e2e test $2:"
+        run_one_gst $2
+    fi
+    exit
+fi 
+
 
 make clean
 echo "bye"
