@@ -66,7 +66,7 @@ run_sast_tests()
         echo "Running failure test $ftest............"
         file_name="${sast_dir}/${ftest}.bs"
         fail_standard="${sast_dir}/${ftest}.gst"
-        ./toplevel.native -a < $file_name 2> "${sast_dir}/out/$ftest.out"
+        ./toplevel.native -s < $file_name 2> "${sast_dir}/out/$ftest.out"
         diff "${sast_dir}/out/$ftest.out" $fail_standard > "${sast_dir}/diff/$ftest.diff"
         if [ -s "${sast_dir}/diff/$ftest.diff" ]; then
             echo "ERROR: OUTPUT FOR ${ftest} DOES NOT MATCH EXPECTED OUTPUT \n "

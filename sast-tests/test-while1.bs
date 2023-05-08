@@ -1,5 +1,5 @@
 while (bool b = true) {
-  if (b == true) {
+  if (b) {
     int a = 1;
   }
 }

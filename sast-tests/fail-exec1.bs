@@ -1,1 +1,3 @@
-exec e = < "echo" withargs [1] >;
+// assignment of list as exec path list 
+list of exec arr = [];
+exec e = < "echo" withargs arr >;

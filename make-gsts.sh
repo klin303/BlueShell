@@ -131,10 +131,12 @@ if [ $# -lt 1 ];
     Usage
 fi
 
-make 
+make
+
+echo "right before sp"
 
 # scanner parser gsts
-if [ $1 = "-sp" ]; then 
+if [ "$1" = "-sp" ]; then 
     if [ "$#" -eq 1 ]; then
     echo "Making gold standard for all scanner-parser tests:"
         for test in $sp_tests; do
@@ -144,56 +146,58 @@ if [ $1 = "-sp" ]; then
         for test in $sp_fail; do
             run_sp_gst $test
         done
+        exit
+    else
+        if [ "$#" -eq 2 ]; then
+            echo "Making gold standard for one scanner-parser test $2:"
+            run_sp_gst $2
+            exit 
+        fi 
     fi 
-    exit
-else
-    if [ "$#" -eq 2 ]; then
-        echo "Making gold standard for one scanner-parser test $2:"
-        run_sp_gst $2
+else     
+    echo "right before sast"
+    if [ "$1" = "-sast" ]; then 
+        if [ "$#" -eq 1 ]; then
+        echo "Making gold standard for all sast tests:"
+            for test in $sast_tests; do
+                run_sast_gst $test
+            done
+            for test in $sast_fail; do
+                run_sast_gst $test
+            done
+        else
+            if [ "$#" -eq 2 ]; then
+                echo "Making gold standard for one sast test $2:"
+                run_sast_gst $2
+                exit
+            fi 
+        fi 
+    else 
+    echo "right before e2e " 
+    # create e2e gsts
+        if [ "$1" = "-e2e" ]; then 
+            echo "HELLO" 
+            if [ "$#" -eq 1 ]; then
+                echo "Making gold standard for all e2e tests:"
+                for test in $e2e_tests; do
+                    run_one_gst $test
+                done
+                for test in $e2e_fail; do
+                    run_one_gst $test
+                done
+                exit 
+            fi 
+        else
+            if [ "$#" -eq 2 ]; then
+                echo "Making gold standard for one e2e test $2:"
+                run_one_gst $2
+                exit
+            fi
+        fi
     fi 
-    exit 
 fi 
 
-# sast gsts
-if [ $1 = "-sast"]; then 
-    if [ "$#" -eq 1 ]; then
-    echo "Making gold standard for all sast tests:"
-        for test in $sast_tests; do
-            run_sast_gst $test
-        done
-        for test in $sast_fail; do
-            run_sast_gst $test
-        done
-    fi 
-    exit
-else
-    if [ "$#" -eq 2 ]; then
-        echo "Making gold standard for one sast test $2:"
-        run_sast_gst $2
-    fi 
-    exit
-fi 
 
-
-# create e2e gsts
-if [ $1 = "-e2e"]; then 
-    if [ "$#" -eq 1 ]; then
-    echo "Making gold standard for all e2e tests:"
-        for test in $tests; do
-            run_one_gst $test
-        done
-        for test in $fail_tests; do
-            run_one_gst $test
-        done
-    fi 
-    exit 
-else
-    if [ "$#" -eq 2 ]; then
-        echo "Making gold standard for one e2e test $2:"
-        run_one_gst $2
-    fi
-    exit
-fi 
 
 
 make clean

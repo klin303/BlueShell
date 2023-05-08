@@ -1,1 +1,2 @@
-Fatal error: exception Failure("illegal assignment exec = bool in e = true")
+Fatal error: exception Failure("index exprassign with
+                        incompatible types")

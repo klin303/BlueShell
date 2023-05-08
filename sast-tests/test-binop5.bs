@@ -1,9 +1,7 @@
-float a = 5.0;
+/*float a = 5.0;
 int x = 5;
-bool b = true;
-
 
 a == a;
-x == x;
-b != b;
+x == x; */
+
 

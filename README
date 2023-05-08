@@ -245,6 +245,7 @@ test-while1.bs
     Tests a simple while loop, printing at each iteration.
 
 FAILS
+NOTE: More failure tests are located in the sast-tests sub
 
 fail-arith1.bs
     Detects mismatched types in an arithmetic operation.
@@ -257,6 +258,11 @@ fail-exec1.bs
 
 fail-list1.bs
     Creates a list of strings but attempts to store an int element.
+  
+fail-binop1.bs
+    Adds int and float 
+
+
 
 
 

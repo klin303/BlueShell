@@ -1,1 +1,1 @@
-Fatal error: exception Failure("types of binops must match")
+Fatal error: exception Failure("operator expected int, or float")
