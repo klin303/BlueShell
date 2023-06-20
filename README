@@ -262,8 +262,8 @@ fail-list1.bs
 fail-binop1.bs
     Adds int and float 
 
-
-
+*** VSCode Extension *** 
+Install the extension at https://marketplace.visualstudio.com/items?itemName=klin303.blueshell
 
 
 
